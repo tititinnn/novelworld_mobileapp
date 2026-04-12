@@ -1,0 +1,232 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#FFFFFF">
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_above="@+id/audioPlayerPanel"
+        android:layout_below="@+id/topSection"
+        android:scrollbars="vertical"
+        android:clipToPadding="false">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="20dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                android:text="=====◇◇◇◇◇====="
+                android:textAlignment="center"
+                android:textColor="#000000"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvChapterContent"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:lineSpacingExtra="6dp"
+                android:text="Thành phố sầm uất này luôn có cách để giấu đi những vết sẹo của nó. Phía sau những tòa nhà chọc trời bằng kính và thép tỏa ra thứ ánh sáng lạnh lẽo của kỷ nguyên công nghiệp, là những con ngõ nhỏ hẹp, ẩm thấp, nơi mà ánh nắng mặt trời dường như chưa bao giờ chạm tới được mặt đất loang lổ rêu xanh. Ngõ Thanh Long là một nơi như thế. Nó không nằm trên bất kỳ bản đồ điện tử nào, cũng chẳng có tên trong danh sách những địa danh cần bảo tồn.\n\nCuối con ngõ là một căn nhà gỗ hai tầng theo kiến trúc cổ, lạc lõng giữa những mảng tường gạch vỡ nát xung quanh. Không có biển hiệu, không có đèn neon nhấp nháy, chỉ có một chiếc đèn lồng giấy màu đỏ xỉn màu treo lủng lẳng dưới mái hiên, trên đó thêu một chữ Vô bằng chỉ đen tuyền.\n\nMặc Diễm ngồi phía sau bức bình phong bằng lụa thêu hình hoa bỉ ngạn đỏ rực. Cô diện một bộ sườn xám bằng gấm đen, cổ cao che kín hơi thở..."
+                android:textColor="#333333"
+                android:textSize="16sp" />
+        </LinearLayout>
+    </ScrollView>
+
+
+    <LinearLayout
+        android:id="@+id/topSection"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:background="#FFFFFF"
+        android:elevation="4dp"
+        android:orientation="vertical">
+
+        <RelativeLayout
+            android:id="@+id/header"
+            android:layout_width="match_parent"
+            android:layout_height="56dp">
+
+            <ImageView
+                android:id="@+id/btnBack"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_centerVertical="true"
+                android:layout_marginStart="8dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:focusable="true"
+                android:padding="8dp"
+                android:src="@android:drawable/ic_menu_revert"
+                app:tint="#000000" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerInParent="true"
+                android:text="Nơi cất giữ bản ngã"
+                android:textColor="#000000"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_alignParentBottom="true"
+                android:background="#DDDDDD" />
+        </RelativeLayout>
+
+        <LinearLayout
+            android:id="@+id/topChapterNav"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:paddingVertical="12dp">
+
+            <TextView
+                android:id="@+id/btnPrevChapter"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:background="@drawable/bg_btn_chapter_nav"
+                android:gravity="center"
+                android:paddingHorizontal="16dp"
+                android:text="&lt; Chương trước"
+                android:textColor="#000000"
+                android:textSize="14sp" />
+
+            <ImageView
+                android:id="@+id/btnTableOfContents"
+                android:layout_width="40dp"
+                android:layout_height="36dp"
+                android:layout_marginHorizontal="8dp"
+                android:background="@drawable/bg_btn_toc"
+                android:padding="6dp"
+                android:src="@android:drawable/ic_menu_sort_by_size"
+                app:tint="#000000" />
+
+            <TextView
+                android:id="@+id/btnNextChapter"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:background="@drawable/bg_btn_chapter_nav"
+                android:gravity="center"
+                android:paddingHorizontal="16dp"
+                android:text="Chương sau &gt;"
+                android:textColor="#000000"
+                android:textSize="14sp" />
+        </LinearLayout>
+    </LinearLayout>
+
+
+    <RelativeLayout
+        android:id="@+id/audioPlayerPanel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/bottomNav"
+        android:background="#FFFFFF"
+        android:elevation="8dp"
+        android:paddingHorizontal="16dp"
+        android:paddingBottom="12dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="16dp"
+            android:layout_toStartOf="@+id/btnScrollTop"
+            android:orientation="vertical">
+
+            <SeekBar
+                android:id="@+id/audioSeekBar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:progress="60"
+                android:progressTint="#000000"
+                android:thumbTint="#000000" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:gravity="center"
+                android:orientation="horizontal">
+
+                <ImageView android:layout_width="24dp" android:layout_height="24dp" android:layout_marginEnd="16dp" android:src="@android:drawable/ic_popup_sync" app:tint="#000000" />
+                <ImageView android:layout_width="32dp" android:layout_height="32dp" android:layout_marginEnd="12dp" android:src="@android:drawable/ic_media_previous" app:tint="#000000" />
+
+                <FrameLayout android:layout_width="40dp" android:layout_height="40dp" android:background="@drawable/bg_circle_orange">
+                    <ImageView android:layout_width="24dp" android:layout_height="24dp" android:layout_gravity="center" android:src="@android:drawable/ic_media_pause" app:tint="#FFFFFF" />
+                </FrameLayout>
+
+                <ImageView android:layout_width="32dp" android:layout_height="32dp" android:layout_marginStart="12dp" android:layout_marginEnd="16dp" android:src="@android:drawable/ic_media_next" app:tint="#000000" />
+                <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@android:drawable/ic_menu_preferences" app:tint="#000000" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <FrameLayout
+            android:id="@+id/btnScrollTop"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:background="@drawable/bg_circle_outline_black">
+
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_gravity="center"
+                android:src="@android:drawable/arrow_up_float"
+                app:tint="#000000" />
+        </FrameLayout>
+    </RelativeLayout>
+
+
+    <LinearLayout
+        android:id="@+id/bottomNav"
+        android:layout_width="match_parent"
+        android:layout_height="65dp"
+        android:layout_alignParentBottom="true"
+        android:background="#FFFFFF"
+        android:elevation="12dp"
+        android:orientation="vertical"> <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#DDDDDD" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="horizontal"
+            android:weightSum="4">
+
+            <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
+                <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@android:drawable/ic_menu_home" app:tint="#000000" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Trang Chủ" android:textColor="#000000" android:textSize="10sp" />
+            </LinearLayout>
+
+            <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
+                <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@android:drawable/ic_menu_compass" app:tint="#000000" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Khám phá" android:textColor="#000000" android:textSize="10sp" />
+            </LinearLayout>
+
+            <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
+                <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@android:drawable/ic_menu_agenda" app:tint="#000000" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Tủ sách" android:textColor="#000000" android:textSize="10sp" />
+            </LinearLayout>
+
+            <LinearLayout android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
+                <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@android:drawable/ic_menu_myplaces" app:tint="#000000" />
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Tôi" android:textColor="#000000" android:textSize="10sp" />
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+
+</RelativeLayout>
