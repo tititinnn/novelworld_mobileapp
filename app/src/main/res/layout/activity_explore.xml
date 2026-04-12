@@ -182,7 +182,7 @@
                                 android:layout_height="140dp"
                                 android:adjustViewBounds="true"
                                 android:scaleType="centerCrop"
-                                android:src="@drawable/book1" />
+                                android:src="@android:drawable/ic_menu_gallery" />
 
                             <TextView
                                 android:layout_width="92dp"
@@ -214,7 +214,7 @@
                                 android:layout_height="140dp"
                                 android:adjustViewBounds="true"
                                 android:scaleType="centerCrop"
-                                android:src="@drawable/book2" />
+                                android:src="@android:drawable/ic_menu_gallery" />
 
                             <TextView
                                 android:layout_width="92dp"
@@ -255,7 +255,7 @@
                                 android:layout_height="140dp"
                                 android:adjustViewBounds="true"
                                 android:scaleType="centerCrop"
-                                android:src="@drawable/book3" />
+                                android:src="@android:drawable/ic_menu_gallery" />
 
                             <TextView
                                 android:layout_width="92dp"
@@ -287,7 +287,7 @@
                                 android:layout_height="140dp"
                                 android:adjustViewBounds="true"
                                 android:scaleType="centerCrop"
-                                android:src="@drawable/book4" />
+                                android:src="@android:drawable/ic_menu_gallery" />
 
                             <TextView
                                 android:layout_width="92dp"
@@ -328,7 +328,7 @@
                                 android:layout_height="140dp"
                                 android:adjustViewBounds="true"
                                 android:scaleType="centerCrop"
-                                android:src="@drawable/book5" />
+                                android:src="@android:drawable/ic_menu_gallery" />
 
                             <TextView
                                 android:layout_width="92dp"
@@ -360,7 +360,7 @@
                                 android:layout_height="140dp"
                                 android:adjustViewBounds="true"
                                 android:scaleType="centerCrop"
-                                android:src="@drawable/book6" />
+                                android:src="@android:drawable/ic_menu_gallery" />
 
                             <TextView
                                 android:layout_width="92dp"
