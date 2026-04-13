@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:background="#EEEEEE"
     android:gravity="center"
     android:orientation="vertical"
@@ -18,19 +18,19 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginBottom="30dp"
             android:text="ĐĂNG KÝ"
             android:textAlignment="center"
             android:textColor="#000000"
             android:textSize="32sp"
-            android:textStyle="bold"
-            android:layout_marginBottom="30dp" />
+            android:textStyle="bold" />
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="50dp"
+            android:layout_marginBottom="15dp"
             android:background="@drawable/bg_edittext"
             android:gravity="center_vertical"
-            android:layout_marginBottom="15dp"
             android:paddingHorizontal="15dp">
 
             <ImageView
@@ -40,20 +40,21 @@
                 app:tint="#888888" />
 
             <EditText
+                android:id="@+id/etUsername"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:background="@null"
                 android:hint="Tên đăng nhập*"
-                android:paddingLeft="10dp"
+                android:paddingStart="10dp"
                 android:textSize="16sp" />
         </LinearLayout>
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="50dp"
+            android:layout_marginBottom="15dp"
             android:background="@drawable/bg_edittext"
             android:gravity="center_vertical"
-            android:layout_marginBottom="15dp"
             android:paddingHorizontal="15dp">
 
             <ImageView
@@ -63,12 +64,13 @@
                 app:tint="#888888" />
 
             <EditText
+                android:id="@+id/etPassword"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:background="@null"
                 android:hint="Mật khẩu*"
                 android:inputType="textPassword"
-                android:paddingLeft="10dp"
+                android:paddingStart="10dp"
                 android:textSize="16sp" />
         </LinearLayout>
 
@@ -86,43 +88,47 @@
                 app:tint="#888888" />
 
             <EditText
+                android:id="@+id/etConfirmPassword"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:background="@null"
                 android:hint="Xác nhận mật khẩu*"
                 android:inputType="textPassword"
-                android:paddingLeft="10dp"
+                android:paddingStart="10dp"
                 android:textSize="16sp" />
         </LinearLayout>
 
         <TextView
+            android:id="@+id/tvLoginNow"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="20dp"
             android:text="Đã có tài khoản? Đăng nhập"
             android:textAlignment="viewEnd"
             android:textColor="#000000"
             android:textSize="12sp"
-            android:textStyle="bold"
-            android:layout_marginTop="8dp"
-            android:layout_marginBottom="20dp" />
+            android:textStyle="bold" />
 
         <Button
+            android:id="@+id/btnRegister"
             android:layout_width="match_parent"
             android:layout_height="55dp"
+            android:background="@drawable/bg_button_blue"
             android:backgroundTint="#61CCE2"
             android:text="Đăng ký"
             android:textAllCaps="false"
             android:textColor="#FFFFFF"
             android:textSize="18sp"
             android:textStyle="bold"
-            android:background="@drawable/bg_button_blue" />
+            app:backgroundTint="#61CCE2" />
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginVertical="20dp"
             android:gravity="center"
-            android:orientation="horizontal"
-            android:layout_marginVertical="20dp">
+            android:orientation="horizontal">
 
             <View
                 android:layout_width="0dp"
@@ -133,8 +139,8 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="hoặc"
                 android:paddingHorizontal="10dp"
+                android:text="hoặc"
                 android:textColor="#888888" />
 
             <View
@@ -145,8 +151,11 @@
         </LinearLayout>
 
         <LinearLayout
+            android:id="@+id/btnGoogle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:clickable="true"
+            android:focusable="true"
             android:gravity="center"
             android:orientation="horizontal"
             android:paddingBottom="10dp">
@@ -154,8 +163,8 @@
             <ImageView
                 android:layout_width="24dp"
                 android:layout_height="24dp"
-                android:src="@android:drawable/btn_star_big_on"
-                android:layout_marginRight="10dp" />
+                android:layout_marginEnd="10dp"
+                android:src="@android:drawable/btn_star_big_on" />
 
             <TextView
                 android:layout_width="wrap_content"
