@@ -168,7 +168,7 @@
             <ImageView
                 android:layout_width="24dp"
                 android:layout_height="24dp"
-                android:src="@android:drawable/ic_menu_home"
+                android:src="@drawable/ic_menu_home"
                 app:tint="#000000" />
 
             <TextView
