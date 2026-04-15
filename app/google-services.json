@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "573449830630",
+    "project_id": "novelworld-28168",
+    "storage_bucket": "novelworld-28168.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:573449830630:android:e51e17caa062726c437b27",
+        "android_client_info": {
+          "package_name": "com.example.btl_novelworld"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBg06Pek04Qqd6qtpA6uy4Cfr78noKcF_8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
