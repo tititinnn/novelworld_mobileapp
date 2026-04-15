@@ -69,16 +69,18 @@
                 android:background="#F5F5F5">
 
                 <ImageView
+                    android:id="@+id/img_avatar"
                     android:layout_width="84dp"
                     android:layout_height="84dp"
                     android:background="@drawable/bg_circle_avatar"
-                    android:src="@android:color/transparent" />
+                    tools:src="@android:color/transparent" />
 
                 <TextView
+                    android:id="@+id/txt_username"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:text="User 1"
+                    tools:text="User 1"
                     android:textColor="#000000"
                     android:textSize="16sp"
                     android:fontFamily="serif" />

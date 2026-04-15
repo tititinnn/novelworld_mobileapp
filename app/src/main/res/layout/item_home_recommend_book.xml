@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="20dp"
+    android:orientation="horizontal">
+
+    <ImageView
+        android:id="@+id/img_book_cover"
+        android:layout_width="90dp"
+        android:layout_height="130dp"
+        android:scaleType="centerCrop"
+        tools:src="@android:drawable/ic_menu_gallery" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="15dp"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/txt_book_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#000000"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            tools:text="Nơi cất giữ bản ngã" />
+
+        <TextView
+            android:id="@+id/txt_view_count"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:textColor="#666666"
+            android:textSize="12sp"
+            tools:text="👁 385.1K" />
+
+        <TextView
+            android:id="@+id/txt_author"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#333333"
+            android:textSize="12sp"
+            tools:text="Tác giả: Thanh Lan" />
+
+        <TextView
+            android:id="@+id/txt_genre"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#333333"
+            android:textSize="12sp"
+            tools:text="Thể loại: Tiểu thuyết, Trinh thám" />
+
+        <TextView
+            android:id="@+id/txt_chapter_count"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#333333"
+            android:textSize="12sp"
+            tools:text="Số chương: 40" />
+    </LinearLayout>
+</LinearLayout>
