@@ -7,6 +7,7 @@
     android:background="#FFFFFF">
 
     <ScrollView
+        android:id="@+id/scrollViewContent"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_above="@+id/audioPlayerPanel"
