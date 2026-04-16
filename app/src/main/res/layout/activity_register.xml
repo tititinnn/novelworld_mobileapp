@@ -36,7 +36,7 @@
             <ImageView
                 android:layout_width="24dp"
                 android:layout_height="24dp"
-                android:src="@android:drawable/ic_menu_myplaces"
+                android:src="@android:drawable/ic_menu_edit"
                 app:tint="#888888" />
 
             <EditText
@@ -44,7 +44,32 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:background="@null"
-                android:hint="Tên đăng nhập*"
+                android:hint="Tên người dùng*"
+                android:paddingStart="10dp"
+                android:textSize="16sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:layout_marginBottom="15dp"
+            android:background="@drawable/bg_edittext"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="15dp">
+
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@android:drawable/ic_dialog_email"
+                app:tint="#888888" />
+
+            <EditText
+                android:id="@+id/etEmail"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@null"
+                android:hint="Email đăng ký*"
+                android:inputType="textEmailAddress"
                 android:paddingStart="10dp"
                 android:textSize="16sp" />
         </LinearLayout>
@@ -102,12 +127,12 @@
             android:id="@+id/tvLoginNow"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:layout_marginBottom="20dp"
+            android:layout_marginTop="12dp"
+            android:layout_marginBottom="25dp"
             android:text="Đã có tài khoản? Đăng nhập"
             android:textAlignment="viewEnd"
             android:textColor="#000000"
-            android:textSize="12sp"
+            android:textSize="13sp"
             android:textStyle="bold" />
 
         <Button
@@ -115,65 +140,12 @@
             android:layout_width="match_parent"
             android:layout_height="55dp"
             android:background="@drawable/bg_button_blue"
-            android:backgroundTint="#61CCE2"
             android:text="Đăng ký"
             android:textAllCaps="false"
             android:textColor="#FFFFFF"
             android:textSize="18sp"
             android:textStyle="bold"
             app:backgroundTint="#61CCE2" />
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginVertical="20dp"
-            android:gravity="center"
-            android:orientation="horizontal">
-
-            <View
-                android:layout_width="0dp"
-                android:layout_height="1dp"
-                android:layout_weight="1"
-                android:background="#CCCCCC" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:paddingHorizontal="10dp"
-                android:text="hoặc"
-                android:textColor="#888888" />
-
-            <View
-                android:layout_width="0dp"
-                android:layout_height="1dp"
-                android:layout_weight="1"
-                android:background="#CCCCCC" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:id="@+id/btnGoogle"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:clickable="true"
-            android:focusable="true"
-            android:gravity="center"
-            android:orientation="horizontal"
-            android:paddingBottom="10dp">
-
-            <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:layout_marginEnd="10dp"
-                android:src="@android:drawable/btn_star_big_on" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="SỬ DỤNG TÀI KHOẢN GOOGLE"
-                android:textColor="#888888"
-                android:textSize="12sp"
-                android:textStyle="bold" />
-        </LinearLayout>
 
     </LinearLayout>
 

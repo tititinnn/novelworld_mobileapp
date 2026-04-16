@@ -36,16 +36,17 @@
             <ImageView
                 android:layout_width="24dp"
                 android:layout_height="24dp"
-                android:src="@android:drawable/ic_menu_myplaces"
+                android:src="@android:drawable/ic_dialog_email"
                 app:tint="#888888" />
 
             <EditText
-                android:id="@+id/etUsername"
+                android:id="@+id/etEmail"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:background="@null"
-                android:hint="Tên đăng nhập"
-                android:paddingLeft="10dp"
+                android:hint="Email đăng nhập"
+                android:inputType="textEmailAddress"
+                android:paddingStart="10dp"
                 android:textSize="16sp" />
         </LinearLayout>
 
@@ -69,7 +70,7 @@
                 android:background="@null"
                 android:hint="Mật khẩu"
                 android:inputType="textPassword"
-                android:paddingLeft="10dp"
+                android:paddingStart="10dp"
                 android:textSize="16sp" />
         </LinearLayout>
 
@@ -77,12 +78,12 @@
             android:id="@+id/tvForgotPassword"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:layout_marginBottom="20dp"
+            android:layout_marginTop="12dp"
+            android:layout_marginBottom="25dp"
             android:text="Quên mật khẩu?"
             android:textAlignment="viewEnd"
             android:textColor="#000000"
-            android:textSize="12sp"
+            android:textSize="13sp"
             android:textStyle="bold" />
 
         <Button
@@ -90,7 +91,6 @@
             android:layout_width="match_parent"
             android:layout_height="55dp"
             android:background="@drawable/bg_button_blue"
-            android:backgroundTint="#61CCE2"
             android:text="Đăng nhập"
             android:textAllCaps="false"
             android:textColor="#FFFFFF"
@@ -101,59 +101,7 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginVertical="20dp"
-            android:gravity="center"
-            android:orientation="horizontal">
-
-            <View
-                android:layout_width="0dp"
-                android:layout_height="1dp"
-                android:layout_weight="1"
-                android:background="#CCCCCC" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:paddingHorizontal="10dp"
-                android:text="hoặc"
-                android:textColor="#888888" />
-
-            <View
-                android:layout_width="0dp"
-                android:layout_height="1dp"
-                android:layout_weight="1"
-                android:background="#CCCCCC" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:id="@+id/btnGoogle"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:clickable="true"
-            android:focusable="true"
-            android:gravity="center"
-            android:orientation="horizontal"
-            android:paddingBottom="10dp">
-
-            <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:layout_marginRight="10dp"
-                android:src="@android:drawable/btn_star_big_on" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="SỬ DỤNG TÀI KHOẢN GOOGLE"
-                android:textColor="#888888"
-                android:textSize="12sp"
-                android:textStyle="bold" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
+            android:layout_marginTop="20dp"
             android:gravity="center"
             android:orientation="horizontal">
 
@@ -162,7 +110,7 @@
                 android:layout_height="wrap_content"
                 android:text="Chưa có tài khoản? "
                 android:textColor="#888888"
-                android:textSize="12sp" />
+                android:textSize="13sp" />
 
             <TextView
                 android:id="@+id/tvRegisterNow"
@@ -170,7 +118,7 @@
                 android:layout_height="wrap_content"
                 android:text="Đăng ký ngay"
                 android:textColor="#61CCE2"
-                android:textSize="12sp"
+                android:textSize="13sp"
                 android:textStyle="bold" />
         </LinearLayout>
 
