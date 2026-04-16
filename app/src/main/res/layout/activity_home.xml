@@ -94,7 +94,10 @@
                     android:id="@+id/rvMonthBooks"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:nestedScrollingEnabled="false"
+                    android:clipToPadding="false"
+                    android:paddingEnd="15dp"
+                    android:orientation="horizontal"
+                    app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
                     tools:listitem="@layout/item_book" />
             </LinearLayout>
 
