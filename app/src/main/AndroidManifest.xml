@@ -14,10 +14,12 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.BTL_NovelWorld">
 
+        <activity android:name=".HomeActivity" android:exported="false" />
+        <activity android:name=".LibraryActivity" android:exported="false" />
         <activity android:name=".BookDetailActivity" android:exported="false" />
         <activity android:name=".ReaderActivity" android:exported="false" />
         <activity android:name=".ChapterListActivity" android:exported="false" />
-        <activity android:name=".HomeActivity" android:exported="false" />
+        <activity android:name=".RegisterActivity" android:exported="false" />
 
         <activity
             android:name=".LoginActivity"
@@ -28,14 +30,5 @@
             </intent-filter>
         </activity>
 
-        <activity
-            android:name=".RegisterActivity"
-            android:exported="false" />
-
-        <activity
-            android:name=".MainActivity"
-            android:exported="false" />
-
     </application>
-
 </manifest>
