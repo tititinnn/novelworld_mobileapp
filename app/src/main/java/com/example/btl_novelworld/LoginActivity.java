@@ -116,9 +116,9 @@ public class LoginActivity extends AppCompatActivity {
         FirebaseUser currentUser = mAuth.getCurrentUser();
         if (currentUser != null) {
             // Nếu muốn tự động đăng nhập, hãy bỏ comment các dòng dưới sau khi có MainActivity
-            // Intent intent = new Intent(LoginActivity.this, MainActivity.class);
-            // startActivity(intent);
-            // finish();
+            Intent intent = new Intent(LoginActivity.this, HomeActivity.class);
+            startActivity(intent);
+            finish();
         }
     }
 }
