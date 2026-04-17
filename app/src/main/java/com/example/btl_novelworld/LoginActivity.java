@@ -30,16 +30,12 @@ public class LoginActivity extends AppCompatActivity {
         initViews();
         mAuth = FirebaseAuth.getInstance();
 
-        // 1. Xử lý nút Đăng nhập bằng Email/Password
         btnLogin.setOnClickListener(v -> loginUser());
 
-        // 2. Chuyển sang màn hình Đăng ký
         tvRegisterNow.setOnClickListener(v -> {
             startActivity(new Intent(LoginActivity.this, RegisterActivity.class));
-            // Không nên finish() ở đây để người dùng có thể nhấn Back quay lại trang Login
         });
 
-        // 3. Xử lý nút Quên mật khẩu
         tvForgotPassword.setOnClickListener(v -> {
             // Sau này bạn có thể dùng mAuth.sendPasswordResetEmail(email) ở đây
             Toast.makeText(LoginActivity.this, "Chức năng khôi phục mật khẩu đang cập nhật", Toast.LENGTH_SHORT).show();
@@ -52,8 +48,6 @@ public class LoginActivity extends AppCompatActivity {
         btnLogin = findViewById(R.id.btnLogin);
         tvRegisterNow = findViewById(R.id.tvRegisterNow);
         tvForgotPassword = findViewById(R.id.tvForgotPassword);
-
-        // Đã xóa bỏ phần ánh xạ btnGoogle
     }
 
     private void loginUser() {
@@ -94,7 +88,7 @@ public class LoginActivity extends AppCompatActivity {
                             // Chuyển hướng sang màn hình Trang chủ (MainActivity)
                             Intent intent = new Intent(LoginActivity.this, HomeActivity.class);
                             startActivity(intent);
-                            finish(); // Đã vào trang chủ thì nên đóng trang Login lại
+                            finish();
                         }
                     } else {
                         // Thất bại (Sai mật khẩu hoặc email chưa đăng ký)

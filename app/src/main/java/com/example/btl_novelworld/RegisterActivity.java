@@ -38,10 +38,8 @@ public class RegisterActivity extends AppCompatActivity {
         mAuth = FirebaseAuth.getInstance();
         db = FirebaseFirestore.getInstance();
 
-        // Xử lý sự kiện click Đăng ký
         btnRegister.setOnClickListener(v -> registerUser());
 
-        // Chuyển sang màn hình Đăng nhập
         tvLoginNow.setOnClickListener(v -> {
             startActivity(new Intent(RegisterActivity.this, LoginActivity.class));
             finish();
@@ -56,8 +54,6 @@ public class RegisterActivity extends AppCompatActivity {
         etConfirmPassword = findViewById(R.id.etConfirmPassword);
         btnRegister = findViewById(R.id.btnRegister);
         tvLoginNow = findViewById(R.id.tvLoginNow);
-
-        // Đã xóa bỏ btnGoogle
     }
 
     private void registerUser() {
