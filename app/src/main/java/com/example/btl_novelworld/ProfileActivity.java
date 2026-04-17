@@ -161,21 +161,29 @@ public class ProfileActivity extends AppCompatActivity {
 
         // --- BOTTOM NAVIGATION ---
         navHome.setOnClickListener(v -> {
-            startActivity(new Intent(ProfileActivity.this, HomeActivity.class));
-            finish(); // Đóng Activity hiện tại để tránh đầy RAM
+            Intent intent = new Intent(ProfileActivity.this, HomeActivity.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            startActivity(intent);
+            overridePendingTransition(0, 0); // Tắt hiệu ứng trượt
+            finish();
         });
 
         navExplore.setOnClickListener(v -> {
-            startActivity(new Intent(ProfileActivity.this, ExploreActivity.class));
+            Intent intent = new Intent(ProfileActivity.this, ExploreActivity.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            startActivity(intent);
+            overridePendingTransition(0, 0);
             finish();
         });
 
         navLibrary.setOnClickListener(v -> {
-            startActivity(new Intent(ProfileActivity.this, LibraryActivity.class));
+            Intent intent = new Intent(ProfileActivity.this, LibraryActivity.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            startActivity(intent);
+            overridePendingTransition(0, 0);
             finish();
         });
-
-        // navProfile: Không xử lý vì đang ở chính màn hình này
+        // navProfile: Đang ở hiện tại nên không cần ấn
     }
 
     // ================= CHỨC NĂNG FIREBASE =================
