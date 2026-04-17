@@ -18,7 +18,10 @@ xmlns:tools="http://schemas.android.com/tools">
     <activity android:name=".ReaderActivity" android:exported="false" />
     <activity android:name=".ChapterListActivity" android:exported="false" />
     <activity android:name=".HomeActivity" android:exported="false" />
-    <activity android:name=".LoginActivity" android:exported="true"/>
+    <activity android:name=".LoginActivity" android:exported="false"/>
+    <activity android:name=".ProfileActivity" android:exported="false"/>
+    <activity android:name=".SettingsActivity" android:exported="false"/>
+
     <activity
         android:name=".MainActivity"
         android:exported="true">
