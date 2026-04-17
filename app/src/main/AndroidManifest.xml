@@ -22,6 +22,8 @@ xmlns:tools="http://schemas.android.com/tools">
     <activity android:name=".ProfileActivity" android:exported="false"/>
     <activity android:name=".SettingsActivity" android:exported="false"/>
     <activity android:name=".LibraryActivity" android:exported="false"/>
+    <activity android:name=".ExploreActivity" android:exported="false"/>
+    <activity android:name=".ExploreRankActivity" android:exported="false"/>
 
     <activity
         android:name=".MainActivity"

@@ -5,6 +5,7 @@ import android.os.Bundle;
 import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
+import android.widget.TextView; // Thêm import này
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
@@ -28,6 +29,7 @@ public class HomeActivity extends AppCompatActivity {
     private RecyclerView rvMonthBooks;
     private RecyclerView rvRecommendBooks;
     private LinearLayout navHome, navExplore, navLibrary, navProfile;
+    private TextView txtMonthRankMore; // Khai báo nút xem thêm BXH
 
     private FirebaseFirestore db;
     private BookAdapter monthAdapter;
@@ -56,10 +58,16 @@ public class HomeActivity extends AppCompatActivity {
         navExplore = findViewById(R.id.navExplore);
         navLibrary = findViewById(R.id.navLibrary);
         navProfile = findViewById(R.id.navProfile);
+
+        // Ánh xạ TextView BXH Hoàn chỉnh
+        txtMonthRankMore = findViewById(R.id.txtMonthRankMore);
     }
 
     private void setupRecyclerViews() {
         monthAdapter = new BookAdapter(this);
+        // KÍCH HOẠT HIỂN THỊ SỐ RANK (Dựa trên hàm setRanking đã thêm vào BookAdapter)
+        monthAdapter.setRanking(true);
+
         recommendAdapter = new RecommendBookAdapter(this);
 
         rvMonthBooks.setLayoutManager(
@@ -74,17 +82,31 @@ public class HomeActivity extends AppCompatActivity {
     }
 
     private void setupActions() {
-        navExplore.setOnClickListener(v ->
-                startActivity(new Intent(this, ExploreActivity.class)));
+        // Sự kiện khi ấn vào "BXH Hoàn chỉnh ▶"
+        txtMonthRankMore.setOnClickListener(v -> {
+            Intent intent = new Intent(HomeActivity.this, ExploreRankActivity.class);
+            startActivity(intent);
+        });
 
-        navLibrary.setOnClickListener(v ->
-                startActivity(new Intent(this, LibraryActivity.class)));
+        // Điều hướng Bottom Nav
+        navExplore.setOnClickListener(v -> {
+            startActivity(new Intent(this, ExploreActivity.class));
+            overridePendingTransition(0, 0);
+        });
 
-        navProfile.setOnClickListener(v ->
-                startActivity(new Intent(this, ProfileActivity.class)));
+        navLibrary.setOnClickListener(v -> {
+            startActivity(new Intent(this, LibraryActivity.class));
+            overridePendingTransition(0, 0);
+        });
+
+        navProfile.setOnClickListener(v -> {
+            startActivity(new Intent(this, ProfileActivity.class));
+            overridePendingTransition(0, 0);
+        });
     }
 
     private void loadMonthBooks() {
+        // Sắp xếp theo viewsCount giảm dần để lấy top tháng
         db.collection("Books")
                 .orderBy("viewsCount", Query.Direction.DESCENDING)
                 .limit(10)

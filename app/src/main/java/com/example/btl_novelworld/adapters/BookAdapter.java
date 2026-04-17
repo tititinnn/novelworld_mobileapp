@@ -2,6 +2,7 @@ package com.example.btl_novelworld.adapters;
 
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Color;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -24,6 +25,10 @@ public class BookAdapter extends RecyclerView.Adapter<BookAdapter.BookViewHolder
 
     private final Context context;
     private final List<Book> books = new ArrayList<>();
+    private boolean isRanking = false;
+    public void setRanking(boolean ranking) {
+        this.isRanking = ranking;
+    }
 
     public BookAdapter(Context context) {
         this.context = context;
@@ -47,6 +52,19 @@ public class BookAdapter extends RecyclerView.Adapter<BookAdapter.BookViewHolder
     @Override
     public void onBindViewHolder(@NonNull BookViewHolder holder, int position) {
         Book book = books.get(position);
+        // Hiển thị số rank nếu là trang Bảng xếp hạng
+        if (isRanking) {
+            holder.txtRankNumber.setVisibility(View.VISIBLE);
+            holder.txtRankNumber.setText(String.valueOf(position + 1));
+
+            // Trang trí thêm: Top 3 cho màu khác biệt
+            if (position == 0) holder.txtRankNumber.setBackgroundColor(Color.parseColor("#FFD700")); // Vàng
+            else if (position == 1) holder.txtRankNumber.setBackgroundColor(Color.parseColor("#C0C0C0")); // Bạc
+            else if (position == 2) holder.txtRankNumber.setBackgroundColor(Color.parseColor("#CD7F32")); // Đồng
+            else holder.txtRankNumber.setBackgroundColor(Color.parseColor("#80000000")); // Đen mờ
+        } else {
+            holder.txtRankNumber.setVisibility(View.GONE);
+        }
 
         holder.txtBookTitle.setText(book.getTitle());
         holder.txtViewCount.setText(formatCount(book.getViewsCount()));
@@ -76,9 +94,11 @@ public class BookAdapter extends RecyclerView.Adapter<BookAdapter.BookViewHolder
         ImageView imgBookCover;
         TextView txtBookTitle;
         TextView txtViewCount;
+        TextView txtRankNumber;
 
         BookViewHolder(@NonNull View itemView) {
             super(itemView);
+            txtRankNumber = itemView.findViewById(R.id.txt_rank_number);
             imgBookCover = itemView.findViewById(R.id.img_book_cover);
             txtBookTitle = itemView.findViewById(R.id.txt_book_title);
             txtViewCount = itemView.findViewById(R.id.txt_view_count);

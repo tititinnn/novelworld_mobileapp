@@ -17,6 +17,9 @@ public class Book {
     private long totalChapters;
     private Timestamp updatedAt;
 
+    private int rankByWeek;
+    private int rankByMonth;
+
     public Book() {
     }
 
@@ -71,4 +74,7 @@ public class Book {
     public Timestamp getUpdatedAt() {
         return updatedAt;
     }
+
+    public int getRankByWeek(){return rankByWeek;}
+    public int getRankByMonth(){return rankByMonth;}
 }

@@ -133,21 +133,29 @@ public class LibraryActivity extends AppCompatActivity {
     // --- LOGIC MENU ĐIỀU HƯỚNG BÊN DƯỚI (BOTTOM NAVIGATION) ---
     private void setupBottomNav() {
         navHome.setOnClickListener(v -> {
-            startActivity(new Intent(LibraryActivity.this, HomeActivity.class));
+            Intent intent = new Intent(LibraryActivity.this, HomeActivity.class);
+            // Cờ này giúp xóa các Activity cũ trùng lặp trên ngăn xếp (Back Stack)
+            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            startActivity(intent);
+            overridePendingTransition(0, 0); // Tắt animation chuyển cảnh để mượt như app thật
             finish();
         });
 
         navExplore.setOnClickListener(v -> {
-            startActivity(new Intent(LibraryActivity.this, ExploreActivity.class));
+            Intent intent = new Intent(LibraryActivity.this, ExploreActivity.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            startActivity(intent);
+            overridePendingTransition(0, 0);
             finish();
         });
 
         navProfile.setOnClickListener(v -> {
-            // startActivity(new Intent(LibraryActivity.this, ProfileActivity.class));
-            // finish();
+            Intent intent = new Intent(LibraryActivity.this, ProfileActivity.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            startActivity(intent);
+            overridePendingTransition(0, 0);
+            finish();
         });
-
-        // Cố tình không set click cho navLibrary vì chúng ta đang đứng ở trang Tủ Sách rồi
     }
 
     // --- LOGIC FIREBASE: LẤY DỮ LIỆU TỦ SÁCH THEO TAB ---
