@@ -1,10 +1,12 @@
 package com.example.btl_novelworld;
 
+import android.annotation.SuppressLint;
 import android.content.Context; // Thêm import này
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager; // Thêm import này
 import android.widget.EditText;
@@ -86,7 +88,7 @@ public class HomeActivity extends AppCompatActivity {
         rvRecommendBooks.setNestedScrollingEnabled(false);
         rvRecommendBooks.setAdapter(recommendAdapter);
     }
-
+    @SuppressLint("ClickableViewAccessibility")
     private void setupActions() {
         // Sự kiện khi ấn vào "BXH Hoàn chỉnh ▶"
         txtMonthRankMore.setOnClickListener(v -> {
@@ -110,30 +112,38 @@ public class HomeActivity extends AppCompatActivity {
             overridePendingTransition(0, 0);
         });
 
-        edtSearch.setOnEditorActionListener((v, actionId, event) -> {
-            // Bắt sự kiện Search, Done, hoặc Enter
-            if (actionId == EditorInfo.IME_ACTION_SEARCH ||
-                    actionId == EditorInfo.IME_ACTION_DONE ||
-                    (event != null && event.getAction() == KeyEvent.ACTION_DOWN && event.getKeyCode() == KeyEvent.KEYCODE_ENTER)) {
-
-                String query = edtSearch.getText().toString().trim();
-                if (!TextUtils.isEmpty(query)) {
-                    // Chuyển sang màn hình tìm kiếm và gửi từ khóa đi
-                    Intent intent = new Intent(HomeActivity.this, SearchActivity.class);
-                    intent.putExtra("QUERY", query);
-                    startActivity(intent);
-
-                    // Đóng bàn phím ảo ngay sau khi bấm tìm kiếm
-                    InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-                    imm.hideSoftInputFromWindow(edtSearch.getWindowToken(), 0);
-
-                    // (Tuỳ chọn) Xóa chữ đã gõ ở Home sau khi chuyển đi
-                    // edtSearch.setText("");
+        // Xử lý click vào icon kính lúp (drawableEnd)
+        edtSearch.setOnTouchListener((v, event) -> {
+            if (event.getAction() == MotionEvent.ACTION_UP) {
+                // Kiểm tra xem vị trí chạm có nằm trên icon bên phải (drawableEnd) không
+                // Index 2 tương ứng với drawableRight/End
+                if (event.getRawX() >= (edtSearch.getRight() - edtSearch.getCompoundDrawables()[2].getBounds().width() - edtSearch.getPaddingEnd())) {
+                    performSearch();
+                    return true;
                 }
-                return true; // Đã xử lý sự kiện
             }
             return false;
         });
+        edtSearch.setOnEditorActionListener((v, actionId, event) -> {
+            if (actionId == EditorInfo.IME_ACTION_SEARCH ||
+                    (event != null && event.getKeyCode() == KeyEvent.KEYCODE_ENTER)) {
+                performSearch();
+                return true;
+            }
+            return false;
+        });
+    }
+    private void performSearch() {
+        String query = edtSearch.getText().toString().trim();
+        if (!TextUtils.isEmpty(query)) {
+            Intent intent = new Intent(HomeActivity.this, SearchActivity.class);
+            intent.putExtra("QUERY", query); // SearchActivity sẽ xử lý toLowerCase()
+            startActivity(intent);
+
+            // Ẩn bàn phím
+            InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+            imm.hideSoftInputFromWindow(edtSearch.getWindowToken(), 0);
+        }
     }
 
     private void loadMonthBooks() {

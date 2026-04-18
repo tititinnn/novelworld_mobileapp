@@ -1,9 +1,11 @@
 package com.example.btl_novelworld;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
@@ -44,7 +46,6 @@ public class SearchActivity extends AppCompatActivity {
         setupRecyclerView();
         setupActions();
 
-        // Nhận từ khóa từ HomeActivity truyền sang
         String query = getIntent().getStringExtra("QUERY");
         if (query != null && !query.isEmpty()) {
             edtSearchInput.setText(query);
@@ -64,50 +65,57 @@ public class SearchActivity extends AppCompatActivity {
         rvSearchResults.setLayoutManager(new LinearLayoutManager(this));
         rvSearchResults.setAdapter(searchAdapter);
     }
-
+    @SuppressLint("ClickableViewAccessibility")
     private void setupActions() {
-        // Nút quay lại
         btnBack.setOnClickListener(v -> finish());
 
-        // Lắng nghe sự kiện tìm kiếm trên bàn phím
-        edtSearchInput.setOnEditorActionListener((v, actionId, event) -> {
-            if (actionId == EditorInfo.IME_ACTION_SEARCH ||
-                    (event != null && event.getAction() == KeyEvent.ACTION_DOWN && event.getKeyCode() == KeyEvent.KEYCODE_ENTER)) {
-
-                String newQuery = edtSearchInput.getText().toString().trim();
-                if (!TextUtils.isEmpty(newQuery)) {
-                    searchBooks(newQuery);
-                    hideKeyboard(); // Đóng bàn phím khi bắt đầu tìm
+        edtSearchInput.setOnTouchListener((v, event) -> {
+            if (event.getAction() == MotionEvent.ACTION_UP) {
+                if (event.getRawX() >= (edtSearchInput.getRight() - edtSearchInput.getCompoundDrawables()[2].getBounds().width() - edtSearchInput.getPaddingEnd())) {
+                    String newQuery = edtSearchInput.getText().toString().trim();
+                    if (!TextUtils.isEmpty(newQuery)) {
+                        searchBooks(newQuery); // Gọi hàm search đã sửa ở bước trước
+                        hideKeyboard();
+                    }
+                    return true;
                 }
-                return true;
             }
             return false;
         });
     }
 
     private void searchBooks(String searchText) {
+        // Chuẩn hóa từ khóa tìm kiếm về chữ thường
+        final String finalSearchText = searchText.toLowerCase().trim();
+
         txtStatus.setVisibility(View.VISIBLE);
         txtStatus.setText("Đang tìm kiếm...");
-        searchAdapter.submitList(new ArrayList<>()); // Xóa kết quả cũ trên màn hình
+        searchAdapter.submitList(new ArrayList<>());
 
-        // Truy vấn Firestore (Tìm theo tên sách bắt đầu bằng từ khóa)
+        // Lấy toàn bộ hoặc một lượng lớn sách để lọc (Giải pháp tối ưu cho BTL ít dữ liệu)
         db.collection("Books")
-                .orderBy("title")
-                .startAt(searchText)
-                .endAt(searchText + "\uf8ff")
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     List<Book> searchResults = new ArrayList<>();
+
                     for (DocumentSnapshot doc : queryDocumentSnapshots) {
                         Book book = doc.toObject(Book.class);
                         if (book != null) {
                             book.setBookId(doc.getId());
-                            searchResults.add(book);
+
+                            // Lấy tên và tác giả, chuyển về chữ thường để so sánh
+                            String title = (book.getTitle() != null) ? book.getTitle().toLowerCase() : "";
+                            String author = (book.getAuthor() != null) ? book.getAuthor().toLowerCase() : "";
+
+                            // Kiểm tra nếu từ khóa xuất hiện trong Tên HOẶC Tác giả
+                            if (title.contains(finalSearchText) || author.contains(finalSearchText)) {
+                                searchResults.add(book);
+                            }
                         }
                     }
 
                     if (searchResults.isEmpty()) {
-                        txtStatus.setText("Không tìm thấy truyện nào có tên bắt đầu bằng:\n\"" + searchText + "\"");
+                        txtStatus.setText("Không tìm thấy kết quả cho: \"" + searchText + "\"");
                         txtStatus.setVisibility(View.VISIBLE);
                     } else {
                         txtStatus.setVisibility(View.GONE);
@@ -115,12 +123,11 @@ public class SearchActivity extends AppCompatActivity {
                     }
                 })
                 .addOnFailureListener(e -> {
-                    txtStatus.setText("Lỗi khi tìm kiếm. Vui lòng kiểm tra kết nối mạng!");
+                    txtStatus.setText("Lỗi kết nối. Vui lòng thử lại!");
                     txtStatus.setVisibility(View.VISIBLE);
                 });
     }
 
-    // Hàm hỗ trợ ẩn bàn phím ảo
     private void hideKeyboard() {
         View view = this.getCurrentFocus();
         if (view != null) {
