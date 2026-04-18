@@ -29,20 +29,40 @@
             tools:text="Bên nhau trọn đời" />
 
         <TextView
+            android:id="@+id/txt_author"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textColor="#555555"
+            android:textSize="13sp"
+            android:visibility="gone"
+            tools:text="Tác giả: Thanh Lan" />
+
+        <TextView
+            android:id="@+id/txt_genre"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:textColor="#555555"
+            android:textSize="13sp"
+            android:visibility="gone"
+            tools:text="Thể loại: Tiểu thuyết, Trinh thám" />
+
+        <TextView
             android:id="@+id/txt_chapter_count"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:textColor="#333333"
+            android:layout_marginTop="2dp"
+            android:textColor="#555555"
             android:textSize="13sp"
-            tools:text="Lần xem trước: Chương 10" />
+            tools:text="Số chương: 40" />
 
         <TextView
             android:id="@+id/txt_view_count"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:textColor="#333333"
+            android:layout_marginTop="2dp"
+            android:textColor="#555555"
             android:textSize="13sp"
             tools:text="Chương mới nhất 97" />
     </LinearLayout>
