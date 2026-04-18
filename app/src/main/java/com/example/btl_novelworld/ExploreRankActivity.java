@@ -67,10 +67,9 @@ public class ExploreRankActivity extends AppCompatActivity {
     }
 
     private void fetchRankings() {
-        // Lấy BXH Tháng (Sắp xếp theo rankByMonth tăng dần: 1, 2, 3...)
-        // Giới hạn 10 cuốn đầu tiên
+// Lấy BXH Tháng: Sắp xếp theo viewsMonth GIẢM DẦN (Nhiều view nhất lên đầu)
         db.collection("Books")
-                .orderBy("rankByMonth", Query.Direction.ASCENDING)
+                .orderBy("viewsMonth", Query.Direction.DESCENDING)
                 .limit(10)
                 .get()
                 .addOnSuccessListener(snapshots -> {
@@ -85,9 +84,9 @@ public class ExploreRankActivity extends AppCompatActivity {
                     monthAdapter.submitList(monthBooks);
                 });
 
-        // Lấy BXH Tuần
+        // Lấy BXH Tuần: Sắp xếp theo viewsWeek GIẢM DẦN
         db.collection("Books")
-                .orderBy("rankByWeek", Query.Direction.ASCENDING)
+                .orderBy("viewsWeek", Query.Direction.DESCENDING)
                 .limit(10)
                 .get()
                 .addOnSuccessListener(snapshots -> {
@@ -107,7 +106,7 @@ public class ExploreRankActivity extends AppCompatActivity {
         btnBack.setOnClickListener(v -> finish());
 
         // Bottom Nav logic
-        navHome.setOnClickListener(v -> navigateTo(MainActivity.class));
+        navHome.setOnClickListener(v -> navigateTo(HomeActivity.class));
         navLibrary.setOnClickListener(v -> navigateTo(LibraryActivity.class));
         navProfile.setOnClickListener(v -> navigateTo(ProfileActivity.class));
 

@@ -162,12 +162,17 @@ public class BookDetailActivity extends AppCompatActivity {
     }
 
     private void incrementViewCount() {
+        if (bookId == null) return;
+
+        // Tạo bản đồ cập nhật để tăng đồng thời 3 trường
+        java.util.Map<String, Object> updates = new java.util.HashMap<>();
+        updates.put("viewsCount", com.google.firebase.firestore.FieldValue.increment(1));
+        updates.put("viewsWeek", com.google.firebase.firestore.FieldValue.increment(1));
+        updates.put("viewsMonth", com.google.firebase.firestore.FieldValue.increment(1));
+
         db.collection("Books").document(bookId)
-                .update("viewsCount", com.google.firebase.firestore.FieldValue.increment(1))
-                .addOnSuccessListener(unused -> {
-                    // Có thể cập nhật lại UI số lượt xem nếu cần
-                    // loadBookDetail();
-                });
+                .update(updates)
+                .addOnFailureListener(e -> android.util.Log.e("ViewError", "Không thể tăng view", e));
     }
 
     private void fetchCategoryNames(List<String> categoryIds) {

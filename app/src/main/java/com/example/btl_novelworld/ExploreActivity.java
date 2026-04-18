@@ -102,7 +102,7 @@ public class ExploreActivity extends AppCompatActivity {
 
         // Xử lý Bottom Navigation
         navHome.setOnClickListener(v -> {
-            navigateTo(MainActivity.class); // Giả sử Home của bạn là MainActivity
+            navigateTo(HomeActivity.class);
         });
 
         navExplore.setOnClickListener(v -> {

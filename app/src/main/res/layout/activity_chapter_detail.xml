@@ -311,6 +311,7 @@
             android:weightSum="4">
 
             <LinearLayout
+                android:id="@+id/navHome"
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
@@ -332,6 +333,7 @@
             </LinearLayout>
 
             <LinearLayout
+                android:id="@+id/navExplore"
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
@@ -353,6 +355,7 @@
             </LinearLayout>
 
             <LinearLayout
+                android:id="@+id/navLibrary"
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
@@ -374,6 +377,7 @@
             </LinearLayout>
 
             <LinearLayout
+                android:id="@+id/navProfile"
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1"

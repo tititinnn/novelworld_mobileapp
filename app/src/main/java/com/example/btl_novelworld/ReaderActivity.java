@@ -32,6 +32,7 @@ import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
 
@@ -40,7 +41,7 @@ import java.util.List;
 import java.util.Locale;
 
 public class ReaderActivity extends AppCompatActivity {
-
+    private LinearLayout navHome, navExplore, navLibrary, navProfile;
     private TextView txtBookTitle, txtCurrentChapter, tvChapterContent, btnPrevChapter, btnNextChapter;
     private TextView txtAudioSpeed, txtAudioCurrentPart, btnToggleHighlight;
     private ImageView btnBack, btnTableOfContents;
@@ -117,6 +118,7 @@ public class ReaderActivity extends AppCompatActivity {
         loadBookInfo();
         restoreSavedAudioStateIfAny();
         loadCurrentChapter();
+        setupNavigation();
     }
 
     private void initViews() {
@@ -140,6 +142,10 @@ public class ReaderActivity extends AppCompatActivity {
         imgPlayPauseAudio = findViewById(R.id.imgPlayPauseAudio);
         btnPlayPauseAudio = findViewById(R.id.btnPlayPauseAudio);
         btnToggleHighlight = findViewById(R.id.btnToggleHighlight);
+        navHome = findViewById(R.id.navHome);
+        navExplore = findViewById(R.id.navExplore);
+        navLibrary = findViewById(R.id.navLibrary);
+        navProfile = findViewById(R.id.navProfile);
 
         updateHighlightButtonText();
         updateAudioSpeedText();
@@ -250,7 +256,30 @@ public class ReaderActivity extends AppCompatActivity {
             }
         });
     }
+    private void setupNavigation() {
+        navHome.setOnClickListener(v -> navigateTo(HomeActivity.class));
+        navExplore.setOnClickListener(v -> navigateTo(ExploreActivity.class));
+        navLibrary.setOnClickListener(v -> navigateTo(LibraryActivity.class));
+        navProfile.setOnClickListener(v -> navigateTo(ProfileActivity.class));
+    }
 
+    private void navigateTo(Class<?> targetActivity) {
+        // 1. Dừng Audio hoàn toàn trước khi rời trang
+        if (textToSpeech != null) {
+            textToSpeech.stop();
+        }
+        isAudioPlaying = false;
+
+        // 2. Chuyển trang
+        Intent intent = new Intent(ReaderActivity.this, targetActivity);
+        // Xóa các Activity cũ để tránh lặp lại màn hình
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        startActivity(intent);
+
+        // 3. Hiệu ứng chuyển cảnh mượt
+        overridePendingTransition(0, 0);
+        finish();
+    }
     private void showAudioSettingsBottomSheet() {
         String[] options = {
                 "Tốc độ đọc: " + speechRateLabels[currentSpeechRateIndex],
@@ -374,8 +403,16 @@ public class ReaderActivity extends AppCompatActivity {
                     }
                 });
     }
-
+    private void incrementViewCountInReader() {
+        FirebaseFirestore.getInstance().collection("Books").document(bookId)
+                .update(
+                        "viewsCount", FieldValue.increment(1),
+                        "viewsWeek", FieldValue.increment(1),
+                        "viewsMonth", FieldValue.increment(1)
+                );
+    }
     private void loadCurrentChapter() {
+        incrementViewCountInReader();
         db.collection("Books")
                 .document(bookId)
                 .collection("Chapters")

@@ -66,8 +66,13 @@ public class ChapterAdapter extends RecyclerView.Adapter<ChapterAdapter.ViewHold
         }
 
         holder.itemView.setOnClickListener(v -> {
+        // 1. Tăng view trực tiếp trên Firestore
             FirebaseFirestore.getInstance().collection("Books").document(bookId)
-                    .update("viewsCount", FieldValue.increment(1));
+                    .update(
+                            "viewsCount", FieldValue.increment(1),
+                            "viewsWeek", FieldValue.increment(1),
+                            "viewsMonth", FieldValue.increment(1)
+                    );
             Intent intent = new Intent(context, ReaderActivity.class);
             intent.putExtra("bookId", bookId);
             intent.putExtra("chapterId", chapter.getChapterId());

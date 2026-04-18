@@ -95,4 +95,5 @@ public class ChapterListActivity extends AppCompatActivity {
                     chapterAdapter.submitList(list);
                 });
     }
+
 }
