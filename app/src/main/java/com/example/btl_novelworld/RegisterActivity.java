@@ -126,7 +126,7 @@ public class RegisterActivity extends AppCompatActivity {
         user.put("createdAt", System.currentTimeMillis());
 
         // Lưu vào Collection "users" với ID là userId từ Auth
-        db.collection("users").document(userId)
+        db.collection("Users").document(userId)
                 .set(user)
                 .addOnSuccessListener(aVoid -> {
                     Toast.makeText(RegisterActivity.this, "Đăng ký thành công!", Toast.LENGTH_SHORT).show();
