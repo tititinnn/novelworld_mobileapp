@@ -40,6 +40,7 @@ public class RecommendBookAdapter extends RecyclerView.Adapter<RecommendBookAdap
     @NonNull
     @Override
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        // Layout khớp với file XML bạn vừa gửi
         View view = LayoutInflater.from(context).inflate(R.layout.item_home_recommend_book, parent, false);
         return new ViewHolder(view);
     }
@@ -48,21 +49,38 @@ public class RecommendBookAdapter extends RecyclerView.Adapter<RecommendBookAdap
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         Book book = books.get(position);
 
+        // Hiển thị Tiêu đề
         holder.txtBookTitle.setText(book.getTitle());
+
+        // Hiển thị Lượt xem với Format 👁
         holder.txtViewCount.setText(formatCount(book.getViewsCount()));
+
+        // Hiển thị Tác giả
         holder.txtAuthor.setText("Tác giả: " + safe(book.getAuthor()));
-        holder.txtGenre.setText("Thể loại: " + formatCategories(book.getCategories()));
+
+        // Hiển thị Thể loại (Lấy từ categoryNamesDisplay đã xử lý ở Activity)
+        String genres = book.getCategoryNamesDisplay();
+        if (genres == null || genres.isEmpty()) {
+            holder.txtGenre.setText("Thể loại: Đang cập nhật...");
+        } else {
+            holder.txtGenre.setText("Thể loại: " + genres);
+        }
+
+        // Hiển thị Số chương
         holder.txtChapterCount.setText("Số chương: " + book.getTotalChapters());
 
+        // Xử lý ảnh bìa với Glide
         if (book.getCoverUrl() != null && !book.getCoverUrl().isEmpty()) {
             Glide.with(context)
                     .load(book.getCoverUrl())
                     .placeholder(android.R.drawable.ic_menu_gallery)
+                    .error(android.R.drawable.ic_menu_report_image)
                     .into(holder.imgBookCover);
         } else {
             holder.imgBookCover.setImageResource(android.R.drawable.ic_menu_gallery);
         }
 
+        // Sự kiện Click vào item
         holder.itemView.setOnClickListener(v -> {
             Intent intent = new Intent(context, BookDetailActivity.class);
             intent.putExtra("bookId", book.getBookId());
@@ -91,12 +109,7 @@ public class RecommendBookAdapter extends RecyclerView.Adapter<RecommendBookAdap
     }
 
     private String safe(String value) {
-        return value == null ? "" : value;
-    }
-
-    private String formatCategories(List<String> categories) {
-        if (categories == null || categories.isEmpty()) return "";
-        return String.join(", ", categories);
+        return (value == null || value.trim().isEmpty()) ? "Chưa rõ" : value;
     }
 
     private String formatCount(long count) {

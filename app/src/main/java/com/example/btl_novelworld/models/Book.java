@@ -19,6 +19,7 @@ public class Book {
 
     private int rankByWeek;
     private int rankByMonth;
+    private String categoryNamesDisplay;
 
     public Book() {
     }
@@ -77,4 +78,7 @@ public class Book {
 
     public int getRankByWeek(){return rankByWeek;}
     public int getRankByMonth(){return rankByMonth;}
+
+    public String getCategoryNamesDisplay() { return categoryNamesDisplay; }
+    public void setCategoryNamesDisplay(String categoryNamesDisplay) { this.categoryNamesDisplay = categoryNamesDisplay; }
 }
