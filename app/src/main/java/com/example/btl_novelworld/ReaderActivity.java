@@ -119,6 +119,15 @@ public class ReaderActivity extends AppCompatActivity {
         restoreSavedAudioStateIfAny();
         loadCurrentChapter();
         setupNavigation();
+        setupTextJustification();
+    }
+    private void setupTextJustification() {
+        TextView tvContent = findViewById(R.id.tvChapterContent);
+
+        // Kiểm tra nếu phiên bản Android từ 8.0 (Oreo) trở lên
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            tvContent.setJustificationMode(android.graphics.text.LineBreaker.JUSTIFICATION_MODE_INTER_WORD);
+        }
     }
 
     private void initViews() {

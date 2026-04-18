@@ -3,7 +3,9 @@ package com.example.btl_novelworld;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -17,8 +19,10 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 import com.example.btl_novelworld.adapters.ChapterAdapter;
+import com.example.btl_novelworld.adapters.CommentAdapter;
 import com.example.btl_novelworld.models.Book;
 import com.example.btl_novelworld.models.Chapter;
+import com.example.btl_novelworld.models.Comment; // ĐÃ SỬA: Import đúng model của bạn
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FieldPath;
@@ -28,15 +32,18 @@ import com.google.firebase.firestore.Query;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
+
+// XÓA BỎ import org.w3c.dom.Comment; vì gây xung đột
 
 public class BookDetailActivity extends AppCompatActivity {
 
-    // Khai báo các View theo ID trong XML
     private ImageView imgBgBlur, imgBookCover, btnBack, imgFavoriteIcon, btnExpandSynopsis;
     private TextView txtBookTitle, txtAuthor, txtGenre, txtViewCount, txtFavCount, txtRating,
             txtSynopsis, txtChapterCount, txtStoryStatus, txtCommentTitle;
     private Button btnStartReading, btnViewAllChapters;
     private CardView btnOpenComments;
+    private BottomSheetDialog commentDialog;
     private RecyclerView rvRecentChapters;
     private LinearLayout btnFavorite, btnRate;
 
@@ -54,7 +61,6 @@ public class BookDetailActivity extends AppCompatActivity {
         db = FirebaseFirestore.getInstance();
         bookId = getIntent().getStringExtra("bookId");
 
-        // Kiểm tra nếu không có ID sách thì thoát để tránh crash
         if (bookId == null || bookId.isEmpty()) {
             Toast.makeText(this, "Không tìm thấy dữ liệu sách!", Toast.LENGTH_SHORT).show();
             finish();
@@ -67,16 +73,22 @@ public class BookDetailActivity extends AppCompatActivity {
         loadBookDetail();
         loadRecentChapters();
         checkFavoriteStatus();
+        loadCommentCount();
     }
-
+    private void loadCommentCount() {
+        db.collection("Books").document(bookId).collection("Comments")
+                .addSnapshotListener((value, error) -> {
+                    if (error != null || value == null) return;
+                    // Cập nhật số lượng hiển thị trên CardView TRƯỚC khi nhấn vào
+                    txtCommentTitle.setText("Bình luận (" + value.size() + ")");
+                });
+    }
     private void initViews() {
-        // Ánh xạ các View từ XML
         imgBgBlur = findViewById(R.id.img_bg_blur);
         imgBookCover = findViewById(R.id.img_book_cover);
         btnBack = findViewById(R.id.btn_back);
         imgFavoriteIcon = findViewById(R.id.img_favorite_icon);
         btnExpandSynopsis = findViewById(R.id.btn_expand_synopsis);
-
         txtBookTitle = findViewById(R.id.txt_book_title);
         txtAuthor = findViewById(R.id.txt_author);
         txtGenre = findViewById(R.id.txt_genre);
@@ -87,7 +99,6 @@ public class BookDetailActivity extends AppCompatActivity {
         txtChapterCount = findViewById(R.id.txt_chapter_count);
         txtStoryStatus = findViewById(R.id.txt_story_status);
         txtCommentTitle = findViewById(R.id.txt_comment_title);
-
         btnStartReading = findViewById(R.id.btn_start_reading);
         btnViewAllChapters = findViewById(R.id.btn_view_all_chapters);
         btnOpenComments = findViewById(R.id.btn_open_comments);
@@ -97,40 +108,107 @@ public class BookDetailActivity extends AppCompatActivity {
     }
 
     private void setupActions() {
-        // Nút quay lại
         btnBack.setOnClickListener(v -> finish());
-
-        // Nút bắt đầu xem (mở chương 1)
         btnStartReading.setOnClickListener(v -> openFirstChapter());
-
-        // Nút xem tất cả chương
         btnViewAllChapters.setOnClickListener(v -> {
             Intent intent = new Intent(this, ChapterListActivity.class);
             intent.putExtra("bookId", bookId);
             startActivity(intent);
         });
-
-        // Nút thu gọn/mở rộng tóm tắt truyện
         btnExpandSynopsis.setOnClickListener(v -> toggleSynopsis());
-
-        // Nút thêm vào yêu thích
         btnFavorite.setOnClickListener(v -> toggleFavorite());
-
-        // Nút mở bình luận
-        btnOpenComments.setOnClickListener(v -> {
-            // Mở CommentActivity nếu bạn đã tạo, hoặc dùng Toast
-            Toast.makeText(this, "Tính năng bình luận đang được cập nhật", Toast.LENGTH_SHORT).show();
-        });
-
-        // Nút đánh giá
+        btnOpenComments.setOnClickListener(v -> showCommentSheet());
         btnRate.setOnClickListener(v ->
                 Toast.makeText(this, "Cảm ơn bạn đã quan tâm đến truyện!", Toast.LENGTH_SHORT).show());
+    }
+
+    private void showCommentSheet() {
+        commentDialog = new BottomSheetDialog(this);
+        View view = getLayoutInflater().inflate(R.layout.item_comment_sheet, null);
+
+        RecyclerView rvComments = view.findViewById(R.id.rv_comments);
+        EditText edtComment = view.findViewById(R.id.edt_comment);
+        ImageView btnSend = view.findViewById(R.id.btn_send_comment);
+
+        // Khởi tạo list và adapter bằng model Comment đúng
+        List<Comment> sheetCommentList = new ArrayList<>();
+        CommentAdapter sheetAdapter = new CommentAdapter(sheetCommentList);
+
+        rvComments.setLayoutManager(new LinearLayoutManager(this));
+        rvComments.setAdapter(sheetAdapter);
+
+        // Lắng nghe dữ liệu
+        db.collection("Books").document(bookId).collection("Comments")
+                .orderBy("timestamp", Query.Direction.DESCENDING)
+                .addSnapshotListener((value, error) -> {
+                    if (error != null) return;
+                    if (value != null) {
+                        sheetCommentList.clear();
+                        for (DocumentSnapshot doc : value.getDocuments()) {
+                            Comment c = doc.toObject(Comment.class);
+                            if (c != null) sheetCommentList.add(c);
+                        }
+                        sheetAdapter.notifyDataSetChanged();
+                        txtCommentTitle.setText("Bình luận (" + value.size() + ")");
+                    }
+                });
+
+        btnSend.setOnClickListener(v -> {
+            String content = edtComment.getText().toString().trim();
+            if (!TextUtils.isEmpty(content)) {
+                postComment(content, edtComment);
+            }
+        });
+
+        commentDialog.setContentView(view);
+        commentDialog.show();
+    }
+
+    private void postComment(String content, EditText edt) {
+        if (FirebaseAuth.getInstance().getCurrentUser() == null) return;
+
+        String uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
+
+        // Truy vấn lấy thông tin người dùng từ Firestore để có tên chính xác nhất
+        db.collection("Users").document(uid).get().addOnSuccessListener(userDoc -> {
+            String username = "Người dùng";
+            if (userDoc.exists()) {
+                // Giả sử trong Firestore bạn đặt field tên là "name" hoặc "username"
+                username = userDoc.getString("username");
+                if (username == null) username = userDoc.getString("name");
+            }
+
+            // Nếu vẫn null thì mới lấy từ Auth Profile
+            if (TextUtils.isEmpty(username)) {
+                username = FirebaseAuth.getInstance().getCurrentUser().getDisplayName();
+            }
+
+            // Cuối cùng nếu vẫn không có thì mới để mặc định
+            if (TextUtils.isEmpty(username)) username = "Người dùng ẩn danh";
+
+            final String finalUsername = username;
+
+            // Tiến hành lưu Comment với finalUsername
+            java.util.Map<String, Object> commentData = new java.util.HashMap<>();
+            commentData.put("uid", uid);
+            commentData.put("userName", finalUsername);
+            commentData.put("content", content);
+            commentData.put("bookId", bookId);
+            commentData.put("timestamp", com.google.firebase.Timestamp.now());
+
+            // Lưu vào Books và Users (như cũ)
+            db.collection("Books").document(bookId).collection("Comments").add(commentData);
+            db.collection("Users").document(uid).collection("Comments").add(commentData)
+                    .addOnSuccessListener(ref -> {
+                        edt.setText("");
+                        Toast.makeText(this, "Đã gửi bình luận!", Toast.LENGTH_SHORT).show();
+                    });
+        });
     }
 
     private void setupRecyclerView() {
         chapterAdapter = new ChapterAdapter(this, bookId);
         rvRecentChapters.setLayoutManager(new LinearLayoutManager(this));
-        // Tắt cuộn riêng cho RV vì nó đã nằm trong NestedScrollView
         rvRecentChapters.setNestedScrollingEnabled(false);
         rvRecentChapters.setAdapter(chapterAdapter);
     }
@@ -142,10 +220,7 @@ public class BookDetailActivity extends AppCompatActivity {
 
             txtBookTitle.setText(book.getTitle());
             txtAuthor.setText("Tác giả: " + safe(book.getAuthor()));
-
-            // Logic quan trọng: Lấy tên thể loại từ mã ID
             fetchCategoryNames(book.getCategories());
-
             txtViewCount.setText(formatCount(book.getViewsCount()));
             txtFavCount.setText(formatCount(book.getLikesCount()));
             txtRating.setText(String.format(Locale.getDefault(), "%.1f", book.getRating()));
@@ -153,7 +228,6 @@ public class BookDetailActivity extends AppCompatActivity {
             txtChapterCount.setText("Số chương: " + book.getTotalChapters());
             txtStoryStatus.setText("Tình trạng: " + safe(book.getStatus()));
 
-            // Load ảnh bìa và ảnh nền mờ
             if (book.getCoverUrl() != null && !book.getCoverUrl().isEmpty()) {
                 Glide.with(this).load(book.getCoverUrl()).into(imgBookCover);
                 Glide.with(this).load(book.getCoverUrl()).centerCrop().into(imgBgBlur);
@@ -161,27 +235,11 @@ public class BookDetailActivity extends AppCompatActivity {
         });
     }
 
-    private void incrementViewCount() {
-        if (bookId == null) return;
-
-        // Tạo bản đồ cập nhật để tăng đồng thời 3 trường
-        java.util.Map<String, Object> updates = new java.util.HashMap<>();
-        updates.put("viewsCount", com.google.firebase.firestore.FieldValue.increment(1));
-        updates.put("viewsWeek", com.google.firebase.firestore.FieldValue.increment(1));
-        updates.put("viewsMonth", com.google.firebase.firestore.FieldValue.increment(1));
-
-        db.collection("Books").document(bookId)
-                .update(updates)
-                .addOnFailureListener(e -> android.util.Log.e("ViewError", "Không thể tăng view", e));
-    }
-
     private void fetchCategoryNames(List<String> categoryIds) {
         if (categoryIds == null || categoryIds.isEmpty()) {
             txtGenre.setText("Thể loại: Khác");
             return;
         }
-
-        // Truy vấn collection Categories dựa trên danh sách ID
         db.collection("Categories")
                 .whereIn(FieldPath.documentId(), categoryIds)
                 .get()
@@ -228,7 +286,6 @@ public class BookDetailActivity extends AppCompatActivity {
 
     private void checkFavoriteStatus() {
         if (FirebaseAuth.getInstance().getCurrentUser() == null) return;
-
         String uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
         db.collection("Users").document(uid).collection("Library")
                 .whereEqualTo("bookId", bookId)
@@ -245,11 +302,8 @@ public class BookDetailActivity extends AppCompatActivity {
             Toast.makeText(this, "Vui lòng đăng nhập để lưu truyện!", Toast.LENGTH_SHORT).show();
             return;
         }
-
         String uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
-
         if (isFavorite) {
-            // Xóa khỏi yêu thích
             db.collection("Users").document(uid).collection("Library")
                     .whereEqualTo("bookId", bookId).get()
                     .addOnSuccessListener(snapshots -> {
@@ -259,7 +313,6 @@ public class BookDetailActivity extends AppCompatActivity {
                         Toast.makeText(this, "Đã xóa khỏi yêu thích", Toast.LENGTH_SHORT).show();
                     });
         } else {
-            // Thêm mới vào yêu thích
             FavoritePayload payload = new FavoritePayload(bookId, "favorite");
             db.collection("Users").document(uid).collection("Library").add(payload)
                     .addOnSuccessListener(ref -> {
@@ -271,15 +324,10 @@ public class BookDetailActivity extends AppCompatActivity {
     }
 
     private void updateFavoriteIcon() {
-        imgFavoriteIcon.setImageResource(
-                isFavorite
-                        ? android.R.drawable.btn_star_big_on
-                        : android.R.drawable.btn_star_big_off
-        );
+        imgFavoriteIcon.setImageResource(isFavorite ? android.R.drawable.btn_star_big_on : android.R.drawable.btn_star_big_off);
     }
 
     private void openFirstChapter() {
-        incrementViewCount();
         db.collection("Books").document(bookId).collection("Chapters")
                 .orderBy("chapterNumber", Query.Direction.ASCENDING)
                 .limit(1).get().addOnSuccessListener(snapshots -> {
@@ -305,12 +353,10 @@ public class BookDetailActivity extends AppCompatActivity {
         return String.valueOf(count);
     }
 
-    // Class nội bộ để đẩy dữ liệu lên Firestore Library
     public static class FavoritePayload {
         public String bookId;
         public String type;
         public com.google.firebase.Timestamp timestamp;
-
         public FavoritePayload(String bookId, String type) {
             this.bookId = bookId;
             this.type = type;
