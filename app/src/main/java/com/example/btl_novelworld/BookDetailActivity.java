@@ -3,6 +3,7 @@ package com.example.btl_novelworld;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.util.Log;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -17,22 +18,30 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 import com.example.btl_novelworld.adapters.ChapterAdapter;
+import com.example.btl_novelworld.database.AppDatabase;
 import com.example.btl_novelworld.models.Book;
 import com.example.btl_novelworld.models.Chapter;
+import com.example.btl_novelworld.models.LocalBook;
+import com.example.btl_novelworld.models.LocalChapter;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FieldPath;
+import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
+import com.google.firebase.Timestamp;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class BookDetailActivity extends AppCompatActivity {
 
-    // Khai báo các View theo ID trong XML
-    private ImageView imgBgBlur, imgBookCover, btnBack, imgFavoriteIcon, btnExpandSynopsis;
+    private ImageView imgBgBlur, imgBookCover, btnBack, imgFavoriteIcon, btnExpandSynopsis, btnDownload;
     private TextView txtBookTitle, txtAuthor, txtGenre, txtViewCount, txtFavCount, txtRating,
             txtSynopsis, txtChapterCount, txtStoryStatus, txtCommentTitle;
     private Button btnStartReading, btnViewAllChapters;
@@ -46,6 +55,11 @@ public class BookDetailActivity extends AppCompatActivity {
     private boolean isFavorite = false;
     private boolean isSynopsisExpanded = false;
 
+    // Các biến phục vụ Offline
+    private Book currentBook;
+    private AppDatabase appDb;
+    private ExecutorService executorService;
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -54,12 +68,15 @@ public class BookDetailActivity extends AppCompatActivity {
         db = FirebaseFirestore.getInstance();
         bookId = getIntent().getStringExtra("bookId");
 
-        // Kiểm tra nếu không có ID sách thì thoát để tránh crash
         if (bookId == null || bookId.isEmpty()) {
             Toast.makeText(this, "Không tìm thấy dữ liệu sách!", Toast.LENGTH_SHORT).show();
             finish();
             return;
         }
+
+        // Khởi tạo Database và Luồng xử lý
+        appDb = AppDatabase.getInstance(this);
+        executorService = Executors.newSingleThreadExecutor();
 
         initViews();
         setupActions();
@@ -70,12 +87,12 @@ public class BookDetailActivity extends AppCompatActivity {
     }
 
     private void initViews() {
-        // Ánh xạ các View từ XML
         imgBgBlur = findViewById(R.id.img_bg_blur);
         imgBookCover = findViewById(R.id.img_book_cover);
         btnBack = findViewById(R.id.btn_back);
         imgFavoriteIcon = findViewById(R.id.img_favorite_icon);
         btnExpandSynopsis = findViewById(R.id.btn_expand_synopsis);
+        btnDownload = findViewById(R.id.btn_download);
 
         txtBookTitle = findViewById(R.id.txt_book_title);
         txtAuthor = findViewById(R.id.txt_author);
@@ -97,82 +114,153 @@ public class BookDetailActivity extends AppCompatActivity {
     }
 
     private void setupActions() {
-        // Nút quay lại
         btnBack.setOnClickListener(v -> finish());
 
-        // Nút bắt đầu xem (mở chương 1)
         btnStartReading.setOnClickListener(v -> openFirstChapter());
 
-        // Nút xem tất cả chương
         btnViewAllChapters.setOnClickListener(v -> {
             Intent intent = new Intent(this, ChapterListActivity.class);
             intent.putExtra("bookId", bookId);
             startActivity(intent);
         });
 
-        // Nút thu gọn/mở rộng tóm tắt truyện
         btnExpandSynopsis.setOnClickListener(v -> toggleSynopsis());
 
-        // Nút thêm vào yêu thích
         btnFavorite.setOnClickListener(v -> toggleFavorite());
 
-        // Nút mở bình luận
-        btnOpenComments.setOnClickListener(v -> {
-            // Mở CommentActivity nếu bạn đã tạo, hoặc dùng Toast
-            Toast.makeText(this, "Tính năng bình luận đang được cập nhật", Toast.LENGTH_SHORT).show();
-        });
+        if (btnDownload != null) {
+            btnDownload.setOnClickListener(v -> {
+                if (currentBook != null) {
+                    downloadBookOffline(currentBook);
+                } else {
+                    Toast.makeText(this, "Đang tải dữ liệu, vui lòng đợi giây lát!", Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
 
-        // Nút đánh giá
+        btnOpenComments.setOnClickListener(v ->
+                Toast.makeText(this, "Tính năng bình luận đang được cập nhật", Toast.LENGTH_SHORT).show());
+
         btnRate.setOnClickListener(v ->
                 Toast.makeText(this, "Cảm ơn bạn đã quan tâm đến truyện!", Toast.LENGTH_SHORT).show());
+    }
+
+    // Đã gộp 2 phiên bản loadBookDetail thành 1
+    private void loadBookDetail() {
+        db.collection("Books").document(bookId).get().addOnSuccessListener(snapshot -> {
+            currentBook = snapshot.toObject(Book.class);
+            if (currentBook == null) return;
+
+            currentBook.setBookId(snapshot.getId());
+
+            txtBookTitle.setText(currentBook.getTitle());
+            txtAuthor.setText("Tác giả: " + safe(currentBook.getAuthor()));
+
+            // Logic quan trọng: Lấy tên thể loại từ mã ID
+            fetchCategoryNames(currentBook.getCategories());
+
+            txtViewCount.setText(formatCount(currentBook.getViewsCount()));
+            txtFavCount.setText(formatCount(currentBook.getLikesCount()));
+            txtRating.setText(String.format(Locale.getDefault(), "%.1f", currentBook.getRating()));
+            txtSynopsis.setText(safe(currentBook.getDescription()));
+            txtChapterCount.setText("Số chương: " + currentBook.getTotalChapters());
+            txtStoryStatus.setText("Tình trạng: " + safe(currentBook.getStatus()));
+
+            if (currentBook.getCoverUrl() != null && !currentBook.getCoverUrl().isEmpty()) {
+                Glide.with(this).load(currentBook.getCoverUrl()).into(imgBookCover);
+                Glide.with(this).load(currentBook.getCoverUrl()).centerCrop().into(imgBgBlur);
+            }
+        });
+    }
+
+    private void downloadBookOffline(Book book) {
+        Toast.makeText(this, "Đang kiểm tra...", Toast.LENGTH_SHORT).show();
+
+        // Bước 1: Cho luồng ngầm kiểm tra xem truyện đã có trong máy chưa
+        executorService.execute(() -> {
+
+            // Tìm truyện trong Room DB bằng bookId
+            LocalBook existingBook = appDb.offlineDao().getBookById(book.getBookId());
+
+            if (existingBook != null) {
+                // NẾU ĐÃ TỒN TẠI: Báo cho người dùng biết và thoát hàm (return)
+                runOnUiThread(() -> {
+                    Toast.makeText(BookDetailActivity.this, "Truyện này đã nằm trong tủ sách của bạn!", Toast.LENGTH_SHORT).show();
+                });
+                return;
+            }
+
+            // Bước 2: NẾU CHƯA CÓ, mới bắt đầu tiến hành tải từ Firebase
+            runOnUiThread(() -> {
+                Toast.makeText(BookDetailActivity.this, "Đang bắt đầu tải truyện...", Toast.LENGTH_SHORT).show();
+            });
+
+            db.collection("Books").document(bookId).collection("Chapters")
+                    .orderBy("chapterNumber", Query.Direction.ASCENDING)
+                    .get()
+                    .addOnSuccessListener(queryDocumentSnapshots -> {
+                        List<LocalChapter> localChapters = new ArrayList<>();
+
+                        for (DocumentSnapshot doc : queryDocumentSnapshots) {
+                            Chapter chapter = doc.toObject(Chapter.class);
+                            if (chapter != null) {
+                                localChapters.add(new LocalChapter(
+                                        doc.getId(),
+                                        bookId,
+                                        chapter.getChapterNumber(),
+                                        chapter.getChapterTitle(),
+                                        chapter.getContent()
+                                ));
+                            }
+                        }
+
+                        if (localChapters.isEmpty()) {
+                            Toast.makeText(this, "Truyện chưa có nội dung để tải!", Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+
+                        // Bước 3: Lưu dữ liệu mới tải vào Room
+                        executorService.execute(() -> {
+                            LocalBook localBook = new LocalBook(
+                                    book.getBookId(),
+                                    book.getTitle(),
+                                    book.getAuthor(),
+                                    book.getCoverUrl(),
+                                    txtGenre.getText().toString().replace("Thể loại: ", ""),
+                                    localChapters.size()
+                            );
+
+                            appDb.offlineDao().insertBook(localBook);
+                            appDb.offlineDao().insertChapters(localChapters);
+
+                            runOnUiThread(() -> {
+                                Toast.makeText(this, "Đã tải xong truyện: " + book.getTitle(), Toast.LENGTH_LONG).show();
+                            });
+                        });
+                    })
+                    .addOnFailureListener(e -> Toast.makeText(this, "Lỗi tải xuống: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+        });
     }
 
     private void setupRecyclerView() {
         chapterAdapter = new ChapterAdapter(this, bookId);
         rvRecentChapters.setLayoutManager(new LinearLayoutManager(this));
-        // Tắt cuộn riêng cho RV vì nó đã nằm trong NestedScrollView
         rvRecentChapters.setNestedScrollingEnabled(false);
         rvRecentChapters.setAdapter(chapterAdapter);
     }
 
-    private void loadBookDetail() {
-        db.collection("Books").document(bookId).get().addOnSuccessListener(snapshot -> {
-            Book book = snapshot.toObject(Book.class);
-            if (book == null) return;
-
-            txtBookTitle.setText(book.getTitle());
-            txtAuthor.setText("Tác giả: " + safe(book.getAuthor()));
-
-            // Logic quan trọng: Lấy tên thể loại từ mã ID
-            fetchCategoryNames(book.getCategories());
-
-            txtViewCount.setText(formatCount(book.getViewsCount()));
-            txtFavCount.setText(formatCount(book.getLikesCount()));
-            txtRating.setText(String.format(Locale.getDefault(), "%.1f", book.getRating()));
-            txtSynopsis.setText(safe(book.getDescription()));
-            txtChapterCount.setText("Số chương: " + book.getTotalChapters());
-            txtStoryStatus.setText("Tình trạng: " + safe(book.getStatus()));
-
-            // Load ảnh bìa và ảnh nền mờ
-            if (book.getCoverUrl() != null && !book.getCoverUrl().isEmpty()) {
-                Glide.with(this).load(book.getCoverUrl()).into(imgBookCover);
-                Glide.with(this).load(book.getCoverUrl()).centerCrop().into(imgBgBlur);
-            }
-        });
-    }
-
+    // Đã gộp 2 hàm incrementViewCount (giữ lại bản cập nhật cả View Tuần/Tháng)
     private void incrementViewCount() {
         if (bookId == null) return;
 
-        // Tạo bản đồ cập nhật để tăng đồng thời 3 trường
-        java.util.Map<String, Object> updates = new java.util.HashMap<>();
-        updates.put("viewsCount", com.google.firebase.firestore.FieldValue.increment(1));
-        updates.put("viewsWeek", com.google.firebase.firestore.FieldValue.increment(1));
-        updates.put("viewsMonth", com.google.firebase.firestore.FieldValue.increment(1));
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("viewsCount", FieldValue.increment(1));
+        updates.put("viewsWeek", FieldValue.increment(1));
+        updates.put("viewsMonth", FieldValue.increment(1));
 
         db.collection("Books").document(bookId)
                 .update(updates)
-                .addOnFailureListener(e -> android.util.Log.e("ViewError", "Không thể tăng view", e));
+                .addOnFailureListener(e -> Log.e("ViewError", "Không thể tăng view", e));
     }
 
     private void fetchCategoryNames(List<String> categoryIds) {
@@ -180,8 +268,6 @@ public class BookDetailActivity extends AppCompatActivity {
             txtGenre.setText("Thể loại: Khác");
             return;
         }
-
-        // Truy vấn collection Categories dựa trên danh sách ID
         db.collection("Categories")
                 .whereIn(FieldPath.documentId(), categoryIds)
                 .get()
@@ -228,7 +314,6 @@ public class BookDetailActivity extends AppCompatActivity {
 
     private void checkFavoriteStatus() {
         if (FirebaseAuth.getInstance().getCurrentUser() == null) return;
-
         String uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
         db.collection("Users").document(uid).collection("Library")
                 .whereEqualTo("bookId", bookId)
@@ -245,11 +330,8 @@ public class BookDetailActivity extends AppCompatActivity {
             Toast.makeText(this, "Vui lòng đăng nhập để lưu truyện!", Toast.LENGTH_SHORT).show();
             return;
         }
-
         String uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
-
         if (isFavorite) {
-            // Xóa khỏi yêu thích
             db.collection("Users").document(uid).collection("Library")
                     .whereEqualTo("bookId", bookId).get()
                     .addOnSuccessListener(snapshots -> {
@@ -259,7 +341,6 @@ public class BookDetailActivity extends AppCompatActivity {
                         Toast.makeText(this, "Đã xóa khỏi yêu thích", Toast.LENGTH_SHORT).show();
                     });
         } else {
-            // Thêm mới vào yêu thích
             FavoritePayload payload = new FavoritePayload(bookId, "favorite");
             db.collection("Users").document(uid).collection("Library").add(payload)
                     .addOnSuccessListener(ref -> {
@@ -305,16 +386,23 @@ public class BookDetailActivity extends AppCompatActivity {
         return String.valueOf(count);
     }
 
-    // Class nội bộ để đẩy dữ liệu lên Firestore Library
+    // Quan trọng: Dọn dẹp luồng khi huỷ Activity
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (executorService != null && !executorService.isShutdown()) {
+            executorService.shutdown();
+        }
+    }
+
     public static class FavoritePayload {
         public String bookId;
         public String type;
-        public com.google.firebase.Timestamp timestamp;
-
+        public Timestamp timestamp;
         public FavoritePayload(String bookId, String type) {
             this.bookId = bookId;
             this.type = type;
-            this.timestamp = com.google.firebase.Timestamp.now();
+            this.timestamp = Timestamp.now();
         }
     }
 }

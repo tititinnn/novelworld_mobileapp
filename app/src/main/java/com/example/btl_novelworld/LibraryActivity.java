@@ -13,9 +13,11 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.btl_novelworld.adapters.BookAdapter;
-import com.example.btl_novelworld.adapters.LibraryBookAdapter; // ĐÃ THÊM IMPORT NÀY
+import com.example.btl_novelworld.adapters.LibraryBookAdapter;
+import com.example.btl_novelworld.database.AppDatabase;
 import com.example.btl_novelworld.models.Book;
 import com.example.btl_novelworld.models.LibraryItem;
+import com.example.btl_novelworld.models.LocalBook;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentSnapshot;
@@ -24,40 +26,45 @@ import com.google.firebase.firestore.Query;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class LibraryActivity extends AppCompatActivity {
 
-    // 1. Khai báo các thành phần Giao diện (UI)
     private ImageView btnBack;
     private TextView tabHistory, tabFavorite, tabSaved;
     private RecyclerView rvLibraryBooks, rvSuggestBooks;
     private LinearLayout navHome, navExplore, navLibrary, navProfile;
 
-    // 2. Biến logic và Firebase
-    private String currentTab = "history"; // Tab mặc định khi mở lên là Lịch sử
+    private String currentTab = "history";
     private FirebaseAuth mAuth;
     private FirebaseFirestore db;
 
-    // 3. Khai báo Adapter
-    private BookAdapter suggestAdapter; // Dùng chung adapter với Trang chủ cho phần Đề xuất
-    private LibraryBookAdapter libraryAdapter; // ĐÃ MỞ KHÓA KHAI BÁO ADAPTER TỦ SÁCH
+    private BookAdapter suggestAdapter;
+    private LibraryBookAdapter libraryAdapter;
+
+    // Các biến phục vụ lấy dữ liệu Offline
+    private AppDatabase appDb;
+    private ExecutorService executorService;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_library);
 
-        // Khởi tạo kết nối Firebase
         mAuth = FirebaseAuth.getInstance();
         db = FirebaseFirestore.getInstance();
 
-        // Gọi các hàm setup
+        // Khởi tạo Database và Luồng chạy ngầm
+        appDb = AppDatabase.getInstance(this);
+        executorService = Executors.newSingleThreadExecutor();
+
         initViews();
         setupRecyclerViews();
         setupTabs();
         setupBottomNav();
 
-        // Tải dữ liệu lần đầu khi vừa mở trang
+        // Load dữ liệu mặc định ban đầu
         updateTabUI(tabHistory, tabFavorite, tabSaved);
         loadBooksForTab(currentTab);
         loadSuggestBooks();
@@ -65,7 +72,6 @@ public class LibraryActivity extends AppCompatActivity {
 
     private void initViews() {
         btnBack = findViewById(R.id.btnBack);
-
         tabHistory = findViewById(R.id.tabHistory);
         tabFavorite = findViewById(R.id.tabFavorite);
         tabSaved = findViewById(R.id.tabSaved);
@@ -78,31 +84,25 @@ public class LibraryActivity extends AppCompatActivity {
         navLibrary = findViewById(R.id.navLibrary);
         navProfile = findViewById(R.id.navProfile);
 
-        // Xử lý nút Back (Quay lại trang trước đó)
         btnBack.setOnClickListener(v -> finish());
     }
 
     private void setupRecyclerViews() {
-        // --- 1. Setup cho danh sách truyện Đề Xuất (Trượt ngang) ---
         suggestAdapter = new BookAdapter(this);
         rvSuggestBooks.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
         rvSuggestBooks.setAdapter(suggestAdapter);
 
-        // --- 2. Setup cho danh sách Tủ Sách chính (Trượt dọc) ---
         rvLibraryBooks.setLayoutManager(new LinearLayoutManager(this));
-
-        // ĐÃ MỞ KHÓA: Khởi tạo và gắn Adapter cho Tủ Sách
         libraryAdapter = new LibraryBookAdapter(this);
         rvLibraryBooks.setAdapter(libraryAdapter);
     }
 
-    // --- LOGIC CHUYỂN ĐỔI GIỮA 3 TAB ---
     private void setupTabs() {
         tabHistory.setOnClickListener(v -> {
             if (!currentTab.equals("history")) {
                 currentTab = "history";
                 updateTabUI(tabHistory, tabFavorite, tabSaved);
-                loadBooksForTab(currentTab); // Tải lại dữ liệu tương ứng
+                loadBooksForTab(currentTab);
             }
         });
 
@@ -123,51 +123,58 @@ public class LibraryActivity extends AppCompatActivity {
         });
     }
 
-    // Hàm đổi màu chữ để user biết mình đang ở Tab nào
     private void updateTabUI(TextView activeTab, TextView inactive1, TextView inactive2) {
-        activeTab.setTextColor(Color.parseColor("#1E88FF")); // Màu xanh dương (Đang chọn)
-        inactive1.setTextColor(Color.parseColor("#222222")); // Màu xám đen (Không chọn)
+        activeTab.setTextColor(Color.parseColor("#1E88FF"));
+        inactive1.setTextColor(Color.parseColor("#222222"));
         inactive2.setTextColor(Color.parseColor("#222222"));
     }
 
-    // --- LOGIC MENU ĐIỀU HƯỚNG BÊN DƯỚI (BOTTOM NAVIGATION) ---
-    private void setupBottomNav() {
-        navHome.setOnClickListener(v -> {
-            Intent intent = new Intent(LibraryActivity.this, HomeActivity.class);
-            // Cờ này giúp xóa các Activity cũ trùng lặp trên ngăn xếp (Back Stack)
-            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-            startActivity(intent);
-            overridePendingTransition(0, 0); // Tắt animation chuyển cảnh để mượt như app thật
-            finish();
-        });
-
-        navExplore.setOnClickListener(v -> {
-            Intent intent = new Intent(LibraryActivity.this, ExploreActivity.class);
-            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-            startActivity(intent);
-            overridePendingTransition(0, 0);
-            finish();
-        });
-
-        navProfile.setOnClickListener(v -> {
-            Intent intent = new Intent(LibraryActivity.this, ProfileActivity.class);
-            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-            startActivity(intent);
-            overridePendingTransition(0, 0);
-            finish();
-        });
-    }
-
-    // --- LOGIC FIREBASE: LẤY DỮ LIỆU TỦ SÁCH THEO TAB ---
+    // --- LOGIC CHÍNH: PHÂN CHIA OFFLINE / ONLINE ---
     private void loadBooksForTab(String tabType) {
+
+        // 1. Nếu là tab "Đã lưu" -> Lấy từ ROOM DATABASE (Offline)
+        if ("saved".equals(tabType)) {
+            executorService.execute(() -> {
+                List<LocalBook> localBooks = appDb.offlineDao().getAllOfflineBooks();
+                List<LibraryItem> offlineItems = new ArrayList<>();
+
+                for (LocalBook lb : localBooks) {
+                    // SỬ DỤNG LỚP ẨN DANH: Ghi đè hàm getBookId và getType
+                    // Không chạm vào biến private, không cần biến title, author bên trong LibraryItem
+                    LibraryItem item = new LibraryItem() {
+                        @Override
+                        public String getBookId() {
+                            return lb.bookId;
+                        }
+
+                        @Override
+                        public String getType() {
+                            return "offline";
+                        }
+                    };
+
+                    offlineItems.add(item);
+                }
+
+                // Đẩy dữ liệu lên giao diện
+                runOnUiThread(() -> {
+                    if (libraryAdapter != null) {
+                        libraryAdapter.submitList(offlineItems);
+                    }
+                });
+            });
+            return;
+        }
+
+        // 2. Các tab khác (Lịch sử, Yêu thích) -> Lấy từ FIREBASE (Online)
         FirebaseUser user = mAuth.getCurrentUser();
-        if (user == null) return;
+        if (user == null) {
+            Toast.makeText(this, "Vui lòng đăng nhập để xem tủ sách!", Toast.LENGTH_SHORT).show();
+            return;
+        }
 
-        String userId = user.getUid();
-
-        // và vào đúng collection "Library" để lọc
-        db.collection("Users").document(userId).collection("Library")
-                .whereEqualTo("type", tabType) // Lọc đúng loại: history, favorite hoặc saved
+        db.collection("Users").document(user.getUid()).collection("Library")
+                .whereEqualTo("type", tabType)
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     List<LibraryItem> list = new ArrayList<>();
@@ -183,9 +190,7 @@ public class LibraryActivity extends AppCompatActivity {
                 });
     }
 
-    // --- LOGIC FIREBASE: TẢI TRUYỆN ĐỀ XUẤT ---
     private void loadSuggestBooks() {
-        // Lấy 5 truyện có views cao nhất trên hệ thống để làm đề xuất
         db.collection("Books")
                 .orderBy("viewsCount", Query.Direction.DESCENDING)
                 .limit(5)
@@ -203,5 +208,39 @@ public class LibraryActivity extends AppCompatActivity {
                         suggestAdapter.submitList(list);
                     }
                 });
+    }
+
+    private void setupBottomNav() {
+        navHome.setOnClickListener(v -> {
+            Intent intent = new Intent(this, HomeActivity.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            startActivity(intent);
+            overridePendingTransition(0, 0);
+            finish();
+        });
+
+        navExplore.setOnClickListener(v -> {
+            Intent intent = new Intent(this, ExploreActivity.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            startActivity(intent);
+            overridePendingTransition(0, 0);
+            finish();
+        });
+
+        navProfile.setOnClickListener(v -> {
+            Intent intent = new Intent(this, ProfileActivity.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            startActivity(intent);
+            overridePendingTransition(0, 0);
+            finish();
+        });
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (executorService != null && !executorService.isShutdown()) {
+            executorService.shutdown();
+        }
     }
 }
