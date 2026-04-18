@@ -38,7 +38,7 @@
                 android:lineSpacingExtra="6dp"
                 android:textColor="#333333"
                 android:textSize="16sp"
-                tools:text="Thành phố sầm uất này luôn có cách để giấu đi những vết sẹo của nó. Phía sau những tòa nhà chọc trời bằng kính và thép tỏa ra thứ ánh sáng lạnh lẽo của kỷ nguyên công nghiệp, là những con ngõ nhỏ hẹp, ẩm thấp, nơi mà ánh nắng mặt trời dường như chưa bao giờ chạm tới được mặt đất loang lổ rêu xanh. Ngõ Thanh Long là một nơi như thế. Nó không nằm trên bất kỳ bản đồ điện tử nào, cũng chẳng có tên trong danh sách những địa danh cần bảo tồn.\n\nCuối con ngõ là một căn nhà gỗ hai tầng theo kiến trúc cổ, lạc lõng giữa những mảng tường gạch vỡ nát xung quanh. Không có biển hiệu, không có đèn neon nhấp nháy, chỉ có một chiếc đèn lồng giấy màu đỏ xỉn màu treo lủng lẳng dưới mái hiên, trên đó thêu một chữ Vô bằng chỉ đen tuyền.\n\nMặc Diễm ngồi phía sau bức bình phong bằng lụa thêu hình hoa bỉ ngạn đỏ rực. Cô diện một bộ sườn xám bằng gấm đen, cổ cao che kín hơi thở..." />
+                tools:text="Thành phố sầm uất này luôn có cách để giấu đi những vết sẹo của nó. Phía sau những tòa nhà chọc trời bằng kính và thép tỏa ra thứ ánh sáng lạnh lẽo của kỷ nguyên công nghiệp, là những con ngõ nhỏ hẹp, ẩm thấp, nơi mà ánh nắng mặt trời dường như chưa bao giờ chạm tới được mặt đất loang lổ rêu xanh. Ngõ Thanh Long là một nơi như thế..." />
         </LinearLayout>
     </ScrollView>
 
@@ -150,14 +150,16 @@
         android:layout_height="wrap_content"
         android:layout_above="@+id/bottomNav"
         android:background="#FFFFFF"
-        android:elevation="8dp"
-        android:paddingHorizontal="16dp"
-        android:paddingBottom="12dp">
+        android:elevation="6dp"
+        android:paddingStart="12dp"
+        android:paddingTop="4dp"
+        android:paddingEnd="12dp"
+        android:paddingBottom="8dp">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginEnd="16dp"
+            android:layout_marginEnd="12dp"
             android:layout_toStartOf="@+id/btnScrollTop"
             android:orientation="vertical">
 
@@ -165,55 +167,96 @@
                 android:id="@+id/audioSeekBar"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:progress="60"
+                android:progress="0"
                 android:progressTint="#000000"
                 android:thumbTint="#000000" />
+
+            <TextView
+                android:id="@+id/txtAudioCurrentPart"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="start"
+                android:layout_marginTop="1dp"
+                android:text="Chưa phát audio"
+                android:textColor="#444444"
+                android:textSize="11sp"
+                android:textStyle="italic" />
+
+            <TextView
+                android:id="@+id/txtAudioSpeed"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="end"
+                android:layout_marginTop="2dp"
+                android:text="Tốc độ: 1.0x"
+                android:textColor="#666666"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/btnToggleHighlight"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:background="@drawable/bg_btn_chapter_nav"
+                android:paddingHorizontal="10dp"
+                android:paddingVertical="4dp"
+                android:text="Tắt highlight"
+                android:textColor="#000000"
+                android:textSize="11sp"
+                android:textStyle="bold" />
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="6dp"
                 android:gravity="center"
                 android:orientation="horizontal">
 
                 <ImageView
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:layout_marginEnd="16dp"
+                    android:id="@+id/btnReplayAudio"
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_marginEnd="12dp"
                     android:src="@android:drawable/ic_popup_sync"
                     app:tint="#000000" />
 
                 <ImageView
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
-                    android:layout_marginEnd="12dp"
+                    android:id="@+id/btnPrevAudioPart"
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:layout_marginEnd="10dp"
                     android:src="@android:drawable/ic_media_previous"
                     app:tint="#000000" />
 
                 <FrameLayout
-                    android:layout_width="40dp"
-                    android:layout_height="40dp"
+                    android:id="@+id/btnPlayPauseAudio"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
                     android:background="@drawable/bg_circle_orange">
 
                     <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
+                        android:id="@+id/imgPlayPauseAudio"
+                        android:layout_width="22dp"
+                        android:layout_height="22dp"
                         android:layout_gravity="center"
-                        android:src="@android:drawable/ic_media_pause"
+                        android:src="@android:drawable/ic_media_play"
                         app:tint="#FFFFFF" />
                 </FrameLayout>
 
                 <ImageView
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
-                    android:layout_marginStart="12dp"
-                    android:layout_marginEnd="16dp"
+                    android:id="@+id/btnNextAudioPart"
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:layout_marginStart="10dp"
+                    android:layout_marginEnd="12dp"
                     android:src="@android:drawable/ic_media_next"
                     app:tint="#000000" />
 
                 <ImageView
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
+                    android:id="@+id/btnAudioSettings"
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
                     android:src="@android:drawable/ic_menu_preferences"
                     app:tint="#000000" />
             </LinearLayout>
@@ -221,15 +264,15 @@
 
         <FrameLayout
             android:id="@+id/btnScrollTop"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
+            android:layout_width="34dp"
+            android:layout_height="34dp"
             android:layout_alignParentEnd="true"
             android:layout_centerVertical="true"
             android:background="@drawable/bg_circle_outline_black">
 
             <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
                 android:layout_gravity="center"
                 android:src="@android:drawable/arrow_up_float"
                 app:tint="#000000" />
