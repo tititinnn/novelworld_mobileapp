@@ -19,16 +19,19 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="20dp">
+            android:paddingStart="18dp"
+            android:paddingTop="14dp"
+            android:paddingEnd="18dp"
+            android:paddingBottom="18dp">
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
+                android:layout_marginBottom="12dp"
                 android:text="=====◇◇◇◇◇====="
                 android:textAlignment="center"
                 android:textColor="#000000"
-                android:textSize="18sp"
+                android:textSize="16sp"
                 android:textStyle="bold" />
 
             <TextView
@@ -38,7 +41,7 @@
                 android:lineSpacingExtra="6dp"
                 android:textColor="#333333"
                 android:textSize="16sp"
-                tools:text="Thành phố sầm uất này luôn có cách để giấu đi những vết sẹo của nó. Phía sau những tòa nhà chọc trời bằng kính và thép tỏa ra thứ ánh sáng lạnh lẽo của kỷ nguyên công nghiệp, là những con ngõ nhỏ hẹp, ẩm thấp, nơi mà ánh nắng mặt trời dường như chưa bao giờ chạm tới được mặt đất loang lổ rêu xanh. Ngõ Thanh Long là một nơi như thế..." />
+                tools:text="Thành phố sầm uất này luôn có cách để giấu đi những vết sẹo của nó..." />
         </LinearLayout>
     </ScrollView>
 
@@ -54,18 +57,18 @@
         <RelativeLayout
             android:id="@+id/header"
             android:layout_width="match_parent"
-            android:layout_height="72dp">
+            android:layout_height="60dp">
 
             <ImageView
                 android:id="@+id/btnBack"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
                 android:layout_centerVertical="true"
                 android:layout_marginStart="8dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:clickable="true"
                 android:focusable="true"
-                android:padding="8dp"
+                android:padding="6dp"
                 android:src="@android:drawable/ic_menu_revert"
                 app:tint="#000000" />
 
@@ -80,8 +83,9 @@
                     android:id="@+id/txt_book_title"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:maxLines="1"
                     android:textColor="#000000"
-                    android:textSize="18sp"
+                    android:textSize="17sp"
                     android:textStyle="bold"
                     tools:text="Nơi cất giữ bản ngã" />
 
@@ -91,7 +95,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="2dp"
                     android:textColor="#666666"
-                    android:textSize="13sp"
+                    android:textSize="12sp"
                     tools:text="Chương 1" />
             </LinearLayout>
 
@@ -108,39 +112,46 @@
             android:layout_height="wrap_content"
             android:gravity="center"
             android:orientation="horizontal"
-            android:paddingVertical="12dp">
+            android:paddingStart="12dp"
+            android:paddingTop="6dp"
+            android:paddingEnd="12dp"
+            android:paddingBottom="6dp">
 
             <TextView
                 android:id="@+id/btnPrevChapter"
-                android:layout_width="wrap_content"
-                android:layout_height="36dp"
+                android:layout_width="0dp"
+                android:layout_height="32dp"
+                android:layout_weight="1"
                 android:background="@drawable/bg_btn_chapter_nav"
                 android:gravity="center"
-                android:paddingHorizontal="16dp"
-                android:text="&lt; Chương trước"
+                android:paddingHorizontal="10dp"
+                android:text="&lt; Trước"
                 android:textColor="#000000"
-                android:textSize="14sp" />
+                android:textSize="12sp"
+                android:textStyle="bold" />
 
             <ImageView
                 android:id="@+id/btnTableOfContents"
-                android:layout_width="40dp"
-                android:layout_height="36dp"
-                android:layout_marginHorizontal="8dp"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_marginHorizontal="6dp"
                 android:background="@drawable/bg_btn_toc"
-                android:padding="6dp"
+                android:padding="5dp"
                 android:src="@android:drawable/ic_menu_sort_by_size"
                 app:tint="#000000" />
 
             <TextView
                 android:id="@+id/btnNextChapter"
-                android:layout_width="wrap_content"
-                android:layout_height="36dp"
+                android:layout_width="0dp"
+                android:layout_height="32dp"
+                android:layout_weight="1"
                 android:background="@drawable/bg_btn_chapter_nav"
                 android:gravity="center"
-                android:paddingHorizontal="16dp"
-                android:text="Chương sau &gt;"
+                android:paddingHorizontal="10dp"
+                android:text="Sau &gt;"
                 android:textColor="#000000"
-                android:textSize="14sp" />
+                android:textSize="12sp"
+                android:textStyle="bold" />
         </LinearLayout>
     </LinearLayout>
 
@@ -282,7 +293,7 @@
     <LinearLayout
         android:id="@+id/bottomNav"
         android:layout_width="match_parent"
-        android:layout_height="65dp"
+        android:layout_height="56dp"
         android:layout_alignParentBottom="true"
         android:background="#FFFFFF"
         android:elevation="12dp"
@@ -307,8 +318,8 @@
                 android:orientation="vertical">
 
                 <ImageView
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
                     android:src="@drawable/ic_menu_home"
                     app:tint="#000000" />
 
@@ -317,7 +328,7 @@
                     android:layout_height="wrap_content"
                     android:text="Trang Chủ"
                     android:textColor="#000000"
-                    android:textSize="10sp" />
+                    android:textSize="9sp" />
             </LinearLayout>
 
             <LinearLayout
@@ -328,8 +339,8 @@
                 android:orientation="vertical">
 
                 <ImageView
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
                     android:src="@android:drawable/ic_menu_compass"
                     app:tint="#000000" />
 
@@ -338,7 +349,7 @@
                     android:layout_height="wrap_content"
                     android:text="Khám phá"
                     android:textColor="#000000"
-                    android:textSize="10sp" />
+                    android:textSize="9sp" />
             </LinearLayout>
 
             <LinearLayout
@@ -349,8 +360,8 @@
                 android:orientation="vertical">
 
                 <ImageView
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
                     android:src="@android:drawable/ic_menu_agenda"
                     app:tint="#000000" />
 
@@ -359,7 +370,7 @@
                     android:layout_height="wrap_content"
                     android:text="Tủ sách"
                     android:textColor="#000000"
-                    android:textSize="10sp" />
+                    android:textSize="9sp" />
             </LinearLayout>
 
             <LinearLayout
@@ -370,8 +381,8 @@
                 android:orientation="vertical">
 
                 <ImageView
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
                     android:src="@android:drawable/ic_menu_myplaces"
                     app:tint="#000000" />
 
@@ -380,7 +391,7 @@
                     android:layout_height="wrap_content"
                     android:text="Tôi"
                     android:textColor="#000000"
-                    android:textSize="10sp" />
+                    android:textSize="9sp" />
             </LinearLayout>
         </LinearLayout>
     </LinearLayout>

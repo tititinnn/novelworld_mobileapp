@@ -1,16 +1,22 @@
 package com.example.btl_novelworld;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Typeface;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.speech.tts.TextToSpeech;
 import android.speech.tts.UtteranceProgressListener;
 import android.text.SpannableString;
 import android.text.Spanned;
 import android.text.style.ForegroundColorSpan;
 import android.text.style.StyleSpan;
+import android.view.Gravity;
+import android.view.View;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.SeekBar;
 import android.widget.TextView;
@@ -22,6 +28,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.btl_novelworld.models.Book;
 import com.example.btl_novelworld.models.Chapter;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
@@ -63,6 +70,33 @@ public class ReaderActivity extends AppCompatActivity {
 
     private boolean isHighlightEnabled = true;
 
+    private static final String PREF_AUDIO_STATE = "reader_audio_state";
+    private static final String KEY_BOOK_ID = "book_id";
+    private static final String KEY_CHAPTER_ID = "chapter_id";
+    private static final String KEY_AUDIO_INDEX = "audio_index";
+    private static final String KEY_IS_AUDIO_PLAYING = "is_audio_playing";
+
+    private final Handler sleepTimerHandler = new Handler(Looper.getMainLooper());
+    private Runnable sleepTimerRunnable;
+    private boolean stopWhenChapterEnds = false;
+
+    private final String[] sleepTimerLabels = {
+            "Tắt",
+            "5 phút",
+            "10 phút",
+            "15 phút",
+            "20 phút",
+            "30 phút",
+            "45 phút",
+            "1 giờ",
+            "Khi hết chương này"
+    };
+    private int selectedSleepTimerIndex = 0;
+
+    private boolean shouldAutoPlayAfterChapterLoad = false;
+    private boolean shouldAskResumeAudio = false;
+    private int pendingResumeAudioIndex = 0;
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -81,6 +115,7 @@ public class ReaderActivity extends AppCompatActivity {
         initTextToSpeech();
         setupActions();
         loadBookInfo();
+        restoreSavedAudioStateIfAny();
         loadCurrentChapter();
     }
 
@@ -105,8 +140,8 @@ public class ReaderActivity extends AppCompatActivity {
         imgPlayPauseAudio = findViewById(R.id.imgPlayPauseAudio);
         btnPlayPauseAudio = findViewById(R.id.btnPlayPauseAudio);
         btnToggleHighlight = findViewById(R.id.btnToggleHighlight);
-        updateHighlightButtonText();
 
+        updateHighlightButtonText();
         updateAudioSpeedText();
         updatePlayPauseIcon();
         updateAudioCurrentPartText();
@@ -133,14 +168,26 @@ public class ReaderActivity extends AppCompatActivity {
                         runOnUiThread(() -> {
                             audioSeekBar.setProgress(currentAudioIndex);
 
-                            if (isAudioPlaying) {
-                                if (currentAudioIndex < audioParts.size() - 1) {
-                                    currentAudioIndex++;
+                            if (!isAudioPlaying) return;
+
+                            if (currentAudioIndex < audioParts.size() - 1) {
+                                currentAudioIndex++;
+                                pendingResumeAudioIndex = currentAudioIndex;
+                                updateAudioCurrentPartText();
+                                highlightCurrentAudioPart();
+                                saveAudioReadingState();
+                                speakCurrentPart();
+                            } else {
+                                if (stopWhenChapterEnds) {
+                                    isAudioPlaying = false;
+                                    stopWhenChapterEnds = false;
+                                    selectedSleepTimerIndex = 0;
+                                    updatePlayPauseIcon();
                                     updateAudioCurrentPartText();
-                                    highlightCurrentAudioPart();
-                                    speakCurrentPart();
+                                    saveAudioReadingState();
+                                    Toast.makeText(ReaderActivity.this, "Đã dừng khi hết chương này", Toast.LENGTH_SHORT).show();
                                 } else {
-                                    stopAudioUiOnly();
+                                    autoMoveToNextChapterAfterAudioFinished();
                                 }
                             }
                         });
@@ -148,7 +195,12 @@ public class ReaderActivity extends AppCompatActivity {
 
                     @Override
                     public void onError(String utteranceId) {
-                        runOnUiThread(() -> stopAudioUiOnly());
+                        runOnUiThread(() -> {
+                            isAudioPlaying = false;
+                            updatePlayPauseIcon();
+                            saveAudioReadingState();
+                            Toast.makeText(ReaderActivity.this, "Đọc audio bị lỗi", Toast.LENGTH_SHORT).show();
+                        });
                     }
                 });
             } else {
@@ -167,10 +219,10 @@ public class ReaderActivity extends AppCompatActivity {
         btnScrollTop.setOnClickListener(v -> scrollToTop());
 
         btnReplayAudio.setOnClickListener(v -> replayAudioFromStart());
-        btnPrevAudioPart.setOnClickListener(v -> goToPreviousChapter());
-        btnNextAudioPart.setOnClickListener(v -> goToNextChapter());
+        btnPrevAudioPart.setOnClickListener(v -> goToPreviousAudioPart());
+        btnNextAudioPart.setOnClickListener(v -> goToNextAudioPart());
         btnPlayPauseAudio.setOnClickListener(v -> toggleAudioPlayPause());
-        btnAudioSettings.setOnClickListener(v -> showAudioSpeedDialog());
+        btnAudioSettings.setOnClickListener(v -> showAudioSettingsBottomSheet());
         btnToggleHighlight.setOnClickListener(v -> toggleHighlight());
 
         audioSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
@@ -187,14 +239,105 @@ public class ReaderActivity extends AppCompatActivity {
                 if (audioParts.isEmpty()) return;
 
                 currentAudioIndex = seekBar.getProgress();
+                pendingResumeAudioIndex = currentAudioIndex;
                 updateAudioCurrentPartText();
                 highlightCurrentAudioPart();
+                saveAudioReadingState();
 
                 if (isAudioPlaying) {
                     speakCurrentPart();
                 }
             }
         });
+    }
+
+    private void showAudioSettingsBottomSheet() {
+        String[] options = {
+                "Tốc độ đọc: " + speechRateLabels[currentSpeechRateIndex],
+                "Hẹn giờ"
+        };
+
+        new AlertDialog.Builder(this)
+                .setTitle("Cài đặt audio")
+                .setItems(options, (dialog, which) -> {
+                    if (which == 0) {
+                        showAudioSpeedDialog();
+                    } else if (which == 1) {
+                        showSleepTimerBottomSheet();
+                    }
+                })
+                .show();
+    }
+
+    private void restoreSavedAudioStateIfAny() {
+        SharedPreferences prefs = getSharedPreferences(PREF_AUDIO_STATE, MODE_PRIVATE);
+
+        String savedBookId = prefs.getString(KEY_BOOK_ID, null);
+        String savedChapterId = prefs.getString(KEY_CHAPTER_ID, null);
+        int savedAudioIndex = prefs.getInt(KEY_AUDIO_INDEX, 0);
+        boolean savedWasPlaying = prefs.getBoolean(KEY_IS_AUDIO_PLAYING, false);
+
+        if (savedBookId == null || savedChapterId == null) return;
+
+        if (savedBookId.equals(bookId)) {
+            chapterId = savedChapterId;
+            pendingResumeAudioIndex = Math.max(savedAudioIndex, 0);
+            shouldAskResumeAudio = true;
+            shouldAutoPlayAfterChapterLoad = savedWasPlaying;
+        }
+    }
+
+    private void saveAudioReadingState() {
+        SharedPreferences prefs = getSharedPreferences(PREF_AUDIO_STATE, MODE_PRIVATE);
+        prefs.edit()
+                .putString(KEY_BOOK_ID, bookId)
+                .putString(KEY_CHAPTER_ID, chapterId)
+                .putInt(KEY_AUDIO_INDEX, currentAudioIndex)
+                .putBoolean(KEY_IS_AUDIO_PLAYING, isAudioPlaying)
+                .apply();
+    }
+
+    private void clearSavedAudioReadingState() {
+        SharedPreferences prefs = getSharedPreferences(PREF_AUDIO_STATE, MODE_PRIVATE);
+        prefs.edit().clear().apply();
+    }
+
+    private void askResumeAudioIfNeeded() {
+        if (!shouldAskResumeAudio || audioParts.isEmpty()) return;
+
+        shouldAskResumeAudio = false;
+
+        if (pendingResumeAudioIndex < 0) pendingResumeAudioIndex = 0;
+        if (pendingResumeAudioIndex >= audioParts.size()) {
+            pendingResumeAudioIndex = audioParts.size() - 1;
+        }
+
+        final int resumeIndex = pendingResumeAudioIndex;
+
+        new AlertDialog.Builder(this)
+                .setTitle("Nghe tiếp")
+                .setMessage("Bạn đang nghe dở ở đoạn " + (resumeIndex + 1) + "/" + audioParts.size() + ". Tiếp tục từ đây?")
+                .setPositiveButton("Tiếp tục", (dialog, which) -> {
+                    currentAudioIndex = resumeIndex;
+                    audioSeekBar.setProgress(currentAudioIndex);
+                    updateAudioCurrentPartText();
+                    highlightCurrentAudioPart();
+                    saveAudioReadingState();
+
+                    if (shouldAutoPlayAfterChapterLoad) {
+                        startAudio();
+                    }
+                })
+                .setNegativeButton("Đọc từ đầu", (dialog, which) -> {
+                    currentAudioIndex = 0;
+                    pendingResumeAudioIndex = 0;
+                    audioSeekBar.setProgress(0);
+                    updateAudioCurrentPartText();
+                    highlightCurrentAudioPart();
+                    saveAudioReadingState();
+                })
+                .setCancelable(false)
+                .show();
     }
 
     private void toggleHighlight() {
@@ -205,12 +348,7 @@ public class ReaderActivity extends AppCompatActivity {
 
     private void updateHighlightButtonText() {
         if (btnToggleHighlight == null) return;
-
-        if (isHighlightEnabled) {
-            btnToggleHighlight.setText("Tắt highlight");
-        } else {
-            btnToggleHighlight.setText("Bật highlight");
-        }
+        btnToggleHighlight.setText(isHighlightEnabled ? "Tắt highlight" : "Bật highlight");
     }
 
     private void openChapterList() {
@@ -258,7 +396,17 @@ public class ReaderActivity extends AppCompatActivity {
                     saveReadingHistory(chapter.getChapterId());
                     prepareAudioContent(fullChapterContent);
                     scrollToTop();
-                });
+
+                    if (shouldAskResumeAudio) {
+                        askResumeAudioIfNeeded();
+                    } else if (shouldAutoPlayAfterChapterLoad) {
+                        shouldAutoPlayAfterChapterLoad = false;
+                        startAudio();
+                    }
+                })
+                .addOnFailureListener(e ->
+                        Toast.makeText(this, "Không tải được chương", Toast.LENGTH_SHORT).show()
+                );
     }
 
     private void goToPreviousChapter() {
@@ -280,8 +428,15 @@ public class ReaderActivity extends AppCompatActivity {
                     }
 
                     stopAudioFully();
+
                     DocumentSnapshot doc = result.getDocuments().get(0);
                     chapterId = doc.getId();
+                    currentAudioIndex = 0;
+                    pendingResumeAudioIndex = 0;
+                    shouldAskResumeAudio = false;
+                    shouldAutoPlayAfterChapterLoad = false;
+                    saveAudioReadingState();
+
                     loadCurrentChapter();
                 });
     }
@@ -305,10 +460,56 @@ public class ReaderActivity extends AppCompatActivity {
                     }
 
                     stopAudioFully();
+
                     DocumentSnapshot doc = result.getDocuments().get(0);
                     chapterId = doc.getId();
+                    currentAudioIndex = 0;
+                    pendingResumeAudioIndex = 0;
+                    shouldAskResumeAudio = false;
+                    shouldAutoPlayAfterChapterLoad = false;
+                    saveAudioReadingState();
+
                     loadCurrentChapter();
                 });
+    }
+
+    private void autoMoveToNextChapterAfterAudioFinished() {
+        if (currentChapter == null) {
+            stopAudioUiOnly();
+            return;
+        }
+
+        long currentNumber = currentChapter.getChapterNumber();
+
+        db.collection("Books")
+                .document(bookId)
+                .collection("Chapters")
+                .orderBy("chapterNumber", Query.Direction.ASCENDING)
+                .startAfter(currentNumber)
+                .limit(1)
+                .get()
+                .addOnSuccessListener(result -> {
+                    if (result.isEmpty()) {
+                        isAudioPlaying = false;
+                        updatePlayPauseIcon();
+                        updateAudioCurrentPartText();
+                        clearSavedAudioReadingState();
+                        Toast.makeText(this, "Đã đọc hết chương cuối", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+
+                    DocumentSnapshot doc = result.getDocuments().get(0);
+                    chapterId = doc.getId();
+
+                    currentAudioIndex = 0;
+                    pendingResumeAudioIndex = 0;
+                    shouldAskResumeAudio = false;
+                    shouldAutoPlayAfterChapterLoad = true;
+                    saveAudioReadingState();
+
+                    loadCurrentChapter();
+                })
+                .addOnFailureListener(e -> stopAudioUiOnly());
     }
 
     private void prepareAudioContent(String content) {
@@ -331,7 +532,14 @@ public class ReaderActivity extends AppCompatActivity {
         audioParts.addAll(splitIntoParagraphChunks(content, 300));
 
         audioSeekBar.setMax(Math.max(audioParts.size() - 1, 0));
-        audioSeekBar.setProgress(0);
+
+        if (pendingResumeAudioIndex >= 0 && pendingResumeAudioIndex < audioParts.size()) {
+            currentAudioIndex = pendingResumeAudioIndex;
+        } else {
+            currentAudioIndex = 0;
+        }
+
+        audioSeekBar.setProgress(currentAudioIndex);
         updatePlayPauseIcon();
         updateAudioCurrentPartText();
         highlightCurrentAudioPart();
@@ -360,6 +568,7 @@ public class ReaderActivity extends AppCompatActivity {
         updatePlayPauseIcon();
         updateAudioCurrentPartText();
         highlightCurrentAudioPart();
+        saveAudioReadingState();
         speakCurrentPart();
     }
 
@@ -367,6 +576,7 @@ public class ReaderActivity extends AppCompatActivity {
         isAudioPlaying = false;
         updatePlayPauseIcon();
         updateAudioCurrentPartText();
+        saveAudioReadingState();
 
         if (textToSpeech != null) {
             textToSpeech.stop();
@@ -378,6 +588,7 @@ public class ReaderActivity extends AppCompatActivity {
         updatePlayPauseIcon();
         updateAudioCurrentPartText();
         highlightCurrentAudioPart();
+        saveAudioReadingState();
 
         if (textToSpeech != null) {
             textToSpeech.stop();
@@ -387,10 +598,12 @@ public class ReaderActivity extends AppCompatActivity {
     private void stopAudioFully() {
         isAudioPlaying = false;
         currentAudioIndex = 0;
+        pendingResumeAudioIndex = 0;
         audioSeekBar.setProgress(0);
         updatePlayPauseIcon();
         updateAudioCurrentPartText();
         highlightCurrentAudioPart();
+        saveAudioReadingState();
 
         if (textToSpeech != null) {
             textToSpeech.stop();
@@ -401,10 +614,50 @@ public class ReaderActivity extends AppCompatActivity {
         if (audioParts.isEmpty()) return;
 
         currentAudioIndex = 0;
+        pendingResumeAudioIndex = 0;
         audioSeekBar.setProgress(0);
         updateAudioCurrentPartText();
         highlightCurrentAudioPart();
+        saveAudioReadingState();
         startAudio();
+    }
+
+    private void goToPreviousAudioPart() {
+        if (audioParts.isEmpty()) return;
+
+        if (currentAudioIndex > 0) {
+            currentAudioIndex--;
+            pendingResumeAudioIndex = currentAudioIndex;
+            audioSeekBar.setProgress(currentAudioIndex);
+            updateAudioCurrentPartText();
+            highlightCurrentAudioPart();
+            saveAudioReadingState();
+
+            if (isAudioPlaying) {
+                speakCurrentPart();
+            }
+        } else {
+            Toast.makeText(this, "Đây là đoạn đầu", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void goToNextAudioPart() {
+        if (audioParts.isEmpty()) return;
+
+        if (currentAudioIndex < audioParts.size() - 1) {
+            currentAudioIndex++;
+            pendingResumeAudioIndex = currentAudioIndex;
+            audioSeekBar.setProgress(currentAudioIndex);
+            updateAudioCurrentPartText();
+            highlightCurrentAudioPart();
+            saveAudioReadingState();
+
+            if (isAudioPlaying) {
+                speakCurrentPart();
+            }
+        } else {
+            Toast.makeText(this, "Đây là đoạn cuối", Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void speakCurrentPart() {
@@ -417,6 +670,122 @@ public class ReaderActivity extends AppCompatActivity {
         String text = audioParts.get(currentAudioIndex);
         String utteranceId = "chapter_part_" + currentAudioIndex;
         textToSpeech.speak(text, TextToSpeech.QUEUE_FLUSH, null, utteranceId);
+    }
+
+    private void showSleepTimerBottomSheet() {
+        BottomSheetDialog dialog = new BottomSheetDialog(this);
+
+        ScrollView scrollView = new ScrollView(this);
+        LinearLayout container = new LinearLayout(this);
+        container.setOrientation(LinearLayout.VERTICAL);
+        container.setPadding(0, 24, 0, 24);
+
+        View handle = new View(this);
+        LinearLayout.LayoutParams handleParams = new LinearLayout.LayoutParams(120, 10);
+        handleParams.gravity = Gravity.CENTER_HORIZONTAL;
+        handleParams.bottomMargin = 24;
+        handle.setLayoutParams(handleParams);
+        handle.setBackgroundColor(0xFFD0D0D0);
+        container.addView(handle);
+
+        for (int i = 0; i < sleepTimerLabels.length; i++) {
+            final int index = i;
+
+            LinearLayout row = new LinearLayout(this);
+            row.setOrientation(LinearLayout.HORIZONTAL);
+            row.setGravity(Gravity.CENTER_VERTICAL);
+            row.setPadding(32, 28, 32, 28);
+
+            TextView checkView = new TextView(this);
+            checkView.setTextSize(22);
+            checkView.setTextColor(0xFF000000);
+            checkView.setWidth(80);
+            checkView.setText(selectedSleepTimerIndex == index ? "✓" : "");
+
+            TextView labelView = new TextView(this);
+            labelView.setText(sleepTimerLabels[index]);
+            labelView.setTextSize(18);
+            labelView.setTextColor(0xFF000000);
+
+            row.addView(checkView);
+            row.addView(labelView);
+
+            row.setOnClickListener(v -> {
+                selectedSleepTimerIndex = index;
+                applySleepTimerSelection(index);
+                dialog.dismiss();
+            });
+
+            container.addView(row);
+        }
+
+        scrollView.addView(container);
+        dialog.setContentView(scrollView);
+        dialog.show();
+    }
+
+    private void applySleepTimerSelection(int index) {
+        cancelSleepTimer(true);
+        stopWhenChapterEnds = false;
+
+        switch (index) {
+            case 0:
+                Toast.makeText(this, "Đã tắt hẹn giờ", Toast.LENGTH_SHORT).show();
+                break;
+            case 1:
+                startSleepTimerMinutes(5);
+                break;
+            case 2:
+                startSleepTimerMinutes(10);
+                break;
+            case 3:
+                startSleepTimerMinutes(15);
+                break;
+            case 4:
+                startSleepTimerMinutes(20);
+                break;
+            case 5:
+                startSleepTimerMinutes(30);
+                break;
+            case 6:
+                startSleepTimerMinutes(45);
+                break;
+            case 7:
+                startSleepTimerMinutes(60);
+                break;
+            case 8:
+                stopWhenChapterEnds = true;
+                Toast.makeText(this, "Sẽ dừng khi hết chương này", Toast.LENGTH_SHORT).show();
+                break;
+        }
+    }
+
+    private void startSleepTimerMinutes(int minutes) {
+        if (minutes <= 0) return;
+        if (minutes > 60) minutes = 60;
+
+        cancelSleepTimer(true);
+
+        sleepTimerRunnable = () -> {
+            pauseAudio();
+            selectedSleepTimerIndex = 0;
+            Toast.makeText(this, "Đã đến giờ ngừng đọc", Toast.LENGTH_SHORT).show();
+        };
+
+        sleepTimerHandler.postDelayed(sleepTimerRunnable, minutes * 60L * 1000L);
+        Toast.makeText(this, "Sẽ ngừng đọc sau " + minutes + " phút", Toast.LENGTH_SHORT).show();
+    }
+
+    private void cancelSleepTimer(boolean silent) {
+        if (sleepTimerRunnable != null) {
+            sleepTimerHandler.removeCallbacks(sleepTimerRunnable);
+            sleepTimerRunnable = null;
+        }
+        stopWhenChapterEnds = false;
+
+        if (!silent) {
+            Toast.makeText(this, "Đã tắt hẹn giờ", Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void showAudioSpeedDialog() {
@@ -432,6 +801,10 @@ public class ReaderActivity extends AppCompatActivity {
 
             updateAudioSpeedText();
             dialog.dismiss();
+
+            if (isAudioPlaying) {
+                speakCurrentPart();
+            }
         });
 
         builder.setNegativeButton("Hủy", (dialog, which) -> dialog.dismiss());
@@ -536,12 +909,21 @@ public class ReaderActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onPause() {
+        super.onPause();
+        saveAudioReadingState();
+    }
+
+    @Override
     protected void onDestroy() {
-        super.onDestroy();
+        saveAudioReadingState();
+        cancelSleepTimer(true);
+
         if (textToSpeech != null) {
             textToSpeech.stop();
             textToSpeech.shutdown();
         }
+        super.onDestroy();
     }
 
     private List<String> splitIntoParagraphChunks(String text, int maxLength) {
