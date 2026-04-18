@@ -13,6 +13,8 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.btl_novelworld.R;
 import com.example.btl_novelworld.ReaderActivity;
 import com.example.btl_novelworld.models.Chapter;
+import com.google.firebase.firestore.FieldValue;
+import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -64,6 +66,8 @@ public class ChapterAdapter extends RecyclerView.Adapter<ChapterAdapter.ViewHold
         }
 
         holder.itemView.setOnClickListener(v -> {
+            FirebaseFirestore.getInstance().collection("Books").document(bookId)
+                    .update("viewsCount", FieldValue.increment(1));
             Intent intent = new Intent(context, ReaderActivity.class);
             intent.putExtra("bookId", bookId);
             intent.putExtra("chapterId", chapter.getChapterId());
