@@ -23,8 +23,12 @@
             android:drawableEnd="@android:drawable/ic_menu_search"
             android:drawablePadding="10dp"
             android:hint="Tìm kiếm"
+
             android:inputType="text"
             android:maxLines="1"
+            android:singleLine="true"
+            android:imeOptions="actionSearch"
+
             android:paddingHorizontal="20dp"
             android:textSize="14sp" />
 

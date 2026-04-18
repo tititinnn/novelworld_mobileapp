@@ -1,12 +1,16 @@
 package com.example.btl_novelworld;
 
+import android.content.Context; // Thêm import này
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.view.KeyEvent;
+import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputMethodManager; // Thêm import này
 import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
-import android.widget.TextView; // Thêm import này
+import android.widget.TextView;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
@@ -33,7 +37,7 @@ public class HomeActivity extends AppCompatActivity {
     private RecyclerView rvMonthBooks;
     private RecyclerView rvRecommendBooks;
     private LinearLayout navHome, navExplore, navLibrary, navProfile;
-    private TextView txtMonthRankMore; // Khai báo nút xem thêm BXH
+    private TextView txtMonthRankMore;
 
     private FirebaseFirestore db;
     private BookAdapter monthAdapter;
@@ -63,13 +67,11 @@ public class HomeActivity extends AppCompatActivity {
         navLibrary = findViewById(R.id.navLibrary);
         navProfile = findViewById(R.id.navProfile);
 
-        // Ánh xạ TextView BXH Hoàn chỉnh
         txtMonthRankMore = findViewById(R.id.txtMonthRankMore);
     }
 
     private void setupRecyclerViews() {
         monthAdapter = new BookAdapter(this);
-        // KÍCH HOẠT HIỂN THỊ SỐ RANK (Dựa trên hàm setRanking đã thêm vào BookAdapter)
         monthAdapter.setRanking(true);
 
         recommendAdapter = new RecommendBookAdapter(this);
@@ -107,10 +109,34 @@ public class HomeActivity extends AppCompatActivity {
             startActivity(new Intent(this, ProfileActivity.class));
             overridePendingTransition(0, 0);
         });
+
+        edtSearch.setOnEditorActionListener((v, actionId, event) -> {
+            // Bắt sự kiện Search, Done, hoặc Enter
+            if (actionId == EditorInfo.IME_ACTION_SEARCH ||
+                    actionId == EditorInfo.IME_ACTION_DONE ||
+                    (event != null && event.getAction() == KeyEvent.ACTION_DOWN && event.getKeyCode() == KeyEvent.KEYCODE_ENTER)) {
+
+                String query = edtSearch.getText().toString().trim();
+                if (!TextUtils.isEmpty(query)) {
+                    // Chuyển sang màn hình tìm kiếm và gửi từ khóa đi
+                    Intent intent = new Intent(HomeActivity.this, SearchActivity.class);
+                    intent.putExtra("QUERY", query);
+                    startActivity(intent);
+
+                    // Đóng bàn phím ảo ngay sau khi bấm tìm kiếm
+                    InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                    imm.hideSoftInputFromWindow(edtSearch.getWindowToken(), 0);
+
+                    // (Tuỳ chọn) Xóa chữ đã gõ ở Home sau khi chuyển đi
+                    // edtSearch.setText("");
+                }
+                return true; // Đã xử lý sự kiện
+            }
+            return false;
+        });
     }
 
     private void loadMonthBooks() {
-        // Sắp xếp theo viewsCount giảm dần để lấy top tháng
         db.collection("Books")
                 .orderBy("viewsCount", Query.Direction.DESCENDING)
                 .limit(10)
@@ -137,14 +163,12 @@ public class HomeActivity extends AppCompatActivity {
                     List<Book> bookList = new ArrayList<>();
                     List<String> allCategoryIds = new ArrayList<>();
 
-                    // Bước 1: Thu thập danh sách sách và các ID thể loại cần tìm
                     for (DocumentSnapshot doc : queryDocumentSnapshots.getDocuments()) {
                         Book book = doc.toObject(Book.class);
                         if (book != null) {
                             book.setBookId(doc.getId());
                             bookList.add(book);
 
-                            // Gom tất cả ID thể loại vào một danh sách để truy vấn 1 lần
                             if (book.getCategories() != null) {
                                 allCategoryIds.addAll(book.getCategories());
                             }
@@ -153,7 +177,6 @@ public class HomeActivity extends AppCompatActivity {
 
                     if (bookList.isEmpty()) return;
 
-                    // Bước 2: Truy vấn collection Categories để lấy tên tương ứng
                     fetchCategoryNamesAndDisplay(bookList, allCategoryIds);
                 });
     }
@@ -164,18 +187,15 @@ public class HomeActivity extends AppCompatActivity {
             return;
         }
 
-        // Firestore chỉ cho phép whereIn tối đa 10-30 phần tử, nếu nhiều hơn bạn cần xử lý chia nhỏ
         db.collection("Categories")
                 .whereIn(FieldPath.documentId(), categoryIds)
                 .get()
                 .addOnSuccessListener(querySnapshots -> {
-                    // Tạo một Map để tra cứu nhanh: Key là ID, Value là Name
                     Map<String, String> categoryMap = new HashMap<>();
                     for (DocumentSnapshot doc : querySnapshots) {
                         categoryMap.put(doc.getId(), doc.getString("name"));
                     }
 
-                    // Bước 3: Gán tên thể loại vào từng cuốn sách
                     for (Book book : bookList) {
                         List<String> ids = book.getCategories();
                         if (ids != null && !ids.isEmpty()) {
@@ -185,14 +205,12 @@ public class HomeActivity extends AppCompatActivity {
                                     names.add(categoryMap.get(id));
                                 }
                             }
-                            // Nối các tên lại: "Hành động, Tình cảm"
                             book.setCategoryNamesDisplay(TextUtils.join(", ", names));
                         } else {
                             book.setCategoryNamesDisplay("Chưa phân loại");
                         }
                     }
 
-                    // Bước 4: Cập nhật lên Adapter
                     recommendAdapter.submitList(bookList);
                 });
     }
