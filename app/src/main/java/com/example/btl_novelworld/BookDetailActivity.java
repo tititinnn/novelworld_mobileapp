@@ -145,8 +145,7 @@ public class BookDetailActivity extends AppCompatActivity {
             });
         }
 
-        btnRate.setOnClickListener(v ->
-                Toast.makeText(this, "Cảm ơn bạn đã quan tâm đến truyện!", Toast.LENGTH_SHORT).show());
+        btnRate.setOnClickListener(v -> showRatingDialog());
     }
 
     private void loadCommentCount() {
@@ -435,5 +434,113 @@ public class BookDetailActivity extends AppCompatActivity {
             this.type = type;
             this.timestamp = Timestamp.now();
         }
+    }
+
+    // --- CÁC HÀM XỬ LÝ TÍNH NĂNG ĐÁNH GIÁ (RATING) ---
+
+    private void showRatingDialog() {
+        if (FirebaseAuth.getInstance().getCurrentUser() == null) {
+            Toast.makeText(this, "Vui lòng đăng nhập để đánh giá truyện!", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        String uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
+
+        // 1. Khởi tạo giao diện Dialog bằng Java (Không cần file XML)
+        LinearLayout layout = new LinearLayout(this);
+        layout.setOrientation(LinearLayout.VERTICAL);
+        layout.setPadding(50, 40, 50, 20);
+        layout.setGravity(android.view.Gravity.CENTER);
+
+        // Tạo thanh Đánh giá sao (RatingBar)
+        android.widget.RatingBar ratingBar = new android.widget.RatingBar(this, null, android.R.attr.ratingBarStyleIndicator);
+        ratingBar.setIsIndicator(false); // Cho phép người dùng bấm vào để chọn
+        ratingBar.setNumStars(5);
+        ratingBar.setStepSize(1.0f); // Chỉ cho phép đánh giá số chẵn (1, 2, 3, 4, 5 sao)
+
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        );
+        ratingBar.setLayoutParams(params);
+        layout.addView(ratingBar);
+
+        androidx.appcompat.app.AlertDialog dialog = new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("Đánh giá truyện")
+                .setView(layout)
+                .setPositiveButton("Gửi đánh giá", null) // Để null để tự kiểm soát sự kiện click
+                .setNegativeButton("Hủy", (d, w) -> d.dismiss())
+                .create();
+
+        // 2. Truy vấn xem người này đã đánh giá truyện này bao giờ chưa
+        // Nếu có rồi thì hiển thị lại số sao cũ họ đã chọn
+        db.collection("Books").document(bookId)
+                .collection("Ratings").document(uid)
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (documentSnapshot.exists() && documentSnapshot.getDouble("rating") != null) {
+                        float oldRating = documentSnapshot.getDouble("rating").floatValue();
+                        ratingBar.setRating(oldRating);
+                    }
+                });
+
+        // 3. Xử lý khi bấm nút "Gửi đánh giá"
+        dialog.setOnShowListener(dialogInterface -> {
+            Button btnSubmit = dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE);
+            btnSubmit.setOnClickListener(v -> {
+                float myRating = ratingBar.getRating();
+                if (myRating == 0) {
+                    Toast.makeText(this, "Vui lòng chọn ít nhất 1 sao!", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                submitRating(uid, myRating);
+                dialog.dismiss();
+            });
+        });
+
+        dialog.show();
+    }
+
+    private void submitRating(String uid, float rating) {
+        // Lưu đánh giá của user vào sub-collection "Ratings"
+        Map<String, Object> rateData = new HashMap<>();
+        rateData.put("rating", rating);
+        rateData.put("timestamp", FieldValue.serverTimestamp());
+
+        db.collection("Books").document(bookId)
+                .collection("Ratings").document(uid)
+                .set(rateData) // Dùng set() để lấp đè lên nếu uid này đã từng đánh giá
+                .addOnSuccessListener(aVoid -> {
+                    Toast.makeText(this, "Cảm ơn bạn đã đánh giá!", Toast.LENGTH_SHORT).show();
+                    // Đánh giá xong thì tính toán lại điểm trung bình cho cuốn truyện
+                    calculateAverageRating();
+                });
+    }
+
+    private void calculateAverageRating() {
+        // Kéo toàn bộ đánh giá của cuốn truyện này về để tính trung bình cộng
+        db.collection("Books").document(bookId).collection("Ratings")
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    double totalScore = 0;
+                    int count = queryDocumentSnapshots.size();
+
+                    for (DocumentSnapshot doc : queryDocumentSnapshots) {
+                        if (doc.getDouble("rating") != null) {
+                            totalScore += doc.getDouble("rating");
+                        }
+                    }
+
+                    // Tính điểm trung bình (tránh lỗi chia cho 0)
+                    double average = count > 0 ? (totalScore / count) : 0.0;
+
+                    // Cập nhật điểm trung bình mới lên Document của Book
+                    db.collection("Books").document(bookId)
+                            .update("rating", average)
+                            .addOnSuccessListener(aVoid -> {
+                                // Cập nhật lại giao diện ngay lập tức cho người dùng thấy
+                                txtRating.setText(String.format(Locale.getDefault(), "%.1f", average));
+                            });
+                });
     }
 }
