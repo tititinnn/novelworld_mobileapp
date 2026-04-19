@@ -46,6 +46,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class ReaderActivity extends AppCompatActivity {
+
     private LinearLayout navHome, navExplore, navLibrary, navProfile;
     private TextView txtBookTitle, txtCurrentChapter, tvChapterContent, btnPrevChapter, btnNextChapter;
     private TextView txtAudioSpeed, txtAudioCurrentPart, btnToggleHighlight;
@@ -62,7 +63,6 @@ public class ReaderActivity extends AppCompatActivity {
     private String chapterId;
     private Chapter currentChapter;
 
-    // --- CÁC BIẾN PHỤC VỤ OFFLINE ---
     private boolean isOffline = false;
     private AppDatabase appDb;
     private ExecutorService executorService;
@@ -71,7 +71,7 @@ public class ReaderActivity extends AppCompatActivity {
     private boolean isTtsReady = false;
     private boolean isAudioPlaying = false;
 
-    private final List<String> audioParts = new ArrayList<>();
+    private final List<AudioPart> audioParts = new ArrayList<>();
     private int currentAudioIndex = 0;
     private String fullChapterContent = "";
 
@@ -108,6 +108,18 @@ public class ReaderActivity extends AppCompatActivity {
     private boolean shouldAskResumeAudio = false;
     private int pendingResumeAudioIndex = 0;
 
+    private static class AudioPart {
+        String text;
+        int start;
+        int end;
+
+        AudioPart(String text, int start, int end) {
+            this.text = text;
+            this.start = start;
+            this.end = end;
+        }
+    }
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -116,11 +128,8 @@ public class ReaderActivity extends AppCompatActivity {
         db = FirebaseFirestore.getInstance();
         bookId = getIntent().getStringExtra("bookId");
         chapterId = getIntent().getStringExtra("chapterId");
-
-        // NHẬN CỜ BÁO HIỆU OFFLINE TỪ INTENT
         isOffline = getIntent().getBooleanExtra("isOffline", false);
 
-        // Khởi tạo Database nội bộ
         appDb = AppDatabase.getInstance(this);
         executorService = Executors.newSingleThreadExecutor();
 
@@ -139,10 +148,9 @@ public class ReaderActivity extends AppCompatActivity {
         setupNavigation();
         setupTextJustification();
     }
+
     private void setupTextJustification() {
         TextView tvContent = findViewById(R.id.tvChapterContent);
-
-        // Kiểm tra nếu phiên bản Android từ 8.0 (Oreo) trở lên
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
             tvContent.setJustificationMode(android.graphics.text.LineBreaker.JUSTIFICATION_MODE_INTER_WORD);
         }
@@ -258,10 +266,12 @@ public class ReaderActivity extends AppCompatActivity {
 
         audioSeekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {}
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+            }
 
             @Override
-            public void onStartTrackingTouch(SeekBar seekBar) {}
+            public void onStartTrackingTouch(SeekBar seekBar) {
+            }
 
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
@@ -299,10 +309,6 @@ public class ReaderActivity extends AppCompatActivity {
         finish();
     }
 
-    // ==========================================
-    // CÁC HÀM TẢI DỮ LIỆU ĐÃ ĐƯỢC RẼ NHÁNH OFFLINE
-    // ==========================================
-
     private void loadBookInfo() {
         if (isOffline) {
             executorService.execute(() -> {
@@ -312,12 +318,15 @@ public class ReaderActivity extends AppCompatActivity {
                 }
             });
         } else {
-            db.collection("Books").document(bookId).get().addOnSuccessListener(snapshot -> {
-                Book book = snapshot.toObject(Book.class);
-                if (book != null) {
-                    txtBookTitle.setText(book.getTitle());
-                }
-            });
+            db.collection("Books")
+                    .document(bookId)
+                    .get()
+                    .addOnSuccessListener(snapshot -> {
+                        Book book = snapshot.toObject(Book.class);
+                        if (book != null) {
+                            txtBookTitle.setText(book.getTitle());
+                        }
+                    });
         }
     }
 
@@ -332,7 +341,6 @@ public class ReaderActivity extends AppCompatActivity {
 
     private void loadCurrentChapter() {
         if (isOffline) {
-            // TẢI CHƯƠNG OFFLINE TỪ ROOM DATABASE
             executorService.execute(() -> {
                 LocalChapter localChapter = appDb.offlineDao().getChapterById(chapterId);
 
@@ -342,7 +350,6 @@ public class ReaderActivity extends AppCompatActivity {
                 }
 
                 runOnUiThread(() -> {
-                    // Ánh xạ LocalChapter sang Chapter để tương thích với code cũ của bạn
                     currentChapter = new Chapter();
                     currentChapter.setChapterId(localChapter.chapterId);
                     currentChapter.setChapterNumber(localChapter.chapterNumber);
@@ -354,7 +361,6 @@ public class ReaderActivity extends AppCompatActivity {
                     fullChapterContent = currentChapter.getContent() == null ? "" : currentChapter.getContent();
                     tvChapterContent.setText(fullChapterContent);
 
-                    // Offline thì không cần lưu lịch sử lên Firebase để tránh lỗi mạng
                     prepareAudioContent(fullChapterContent);
                     scrollToTop();
 
@@ -368,9 +374,11 @@ public class ReaderActivity extends AppCompatActivity {
             });
 
         } else {
-            // TẢI CHƯƠNG ONLINE TỪ FIREBASE
             incrementViewCountInReader();
-            db.collection("Books").document(bookId).collection("Chapters").document(chapterId)
+            db.collection("Books")
+                    .document(bookId)
+                    .collection("Chapters")
+                    .document(chapterId)
                     .get()
                     .addOnSuccessListener(snapshot -> {
                         Chapter chapter = snapshot.toObject(Chapter.class);
@@ -405,7 +413,6 @@ public class ReaderActivity extends AppCompatActivity {
 
         if (isOffline) {
             executorService.execute(() -> {
-                // Truy vấn chương có số nhỏ hơn chương hiện tại
                 LocalChapter prevChap = appDb.offlineDao().getPreviousChapter(bookId, currentNumber);
 
                 runOnUiThread(() -> {
@@ -420,9 +427,13 @@ public class ReaderActivity extends AppCompatActivity {
                 });
             });
         } else {
-            db.collection("Books").document(bookId).collection("Chapters")
+            db.collection("Books")
+                    .document(bookId)
+                    .collection("Chapters")
                     .orderBy("chapterNumber", Query.Direction.DESCENDING)
-                    .startAfter(currentNumber).limit(1).get()
+                    .startAfter(currentNumber)
+                    .limit(1)
+                    .get()
                     .addOnSuccessListener(result -> {
                         if (result.isEmpty()) {
                             Toast.makeText(this, "Đây là chương đầu", Toast.LENGTH_SHORT).show();
@@ -442,7 +453,6 @@ public class ReaderActivity extends AppCompatActivity {
 
         if (isOffline) {
             executorService.execute(() -> {
-                // Truy vấn chương có số lớn hơn chương hiện tại
                 LocalChapter nextChap = appDb.offlineDao().getNextChapter(bookId, currentNumber);
 
                 runOnUiThread(() -> {
@@ -457,9 +467,13 @@ public class ReaderActivity extends AppCompatActivity {
                 });
             });
         } else {
-            db.collection("Books").document(bookId).collection("Chapters")
+            db.collection("Books")
+                    .document(bookId)
+                    .collection("Chapters")
                     .orderBy("chapterNumber", Query.Direction.ASCENDING)
-                    .startAfter(currentNumber).limit(1).get()
+                    .startAfter(currentNumber)
+                    .limit(1)
+                    .get()
                     .addOnSuccessListener(result -> {
                         if (result.isEmpty()) {
                             Toast.makeText(this, "Đây là chương cuối", Toast.LENGTH_SHORT).show();
@@ -499,9 +513,13 @@ public class ReaderActivity extends AppCompatActivity {
                 });
             });
         } else {
-            db.collection("Books").document(bookId).collection("Chapters")
+            db.collection("Books")
+                    .document(bookId)
+                    .collection("Chapters")
                     .orderBy("chapterNumber", Query.Direction.ASCENDING)
-                    .startAfter(currentNumber).limit(1).get()
+                    .startAfter(currentNumber)
+                    .limit(1)
+                    .get()
                     .addOnSuccessListener(result -> {
                         if (result.isEmpty()) {
                             isAudioPlaying = false;
@@ -535,18 +553,18 @@ public class ReaderActivity extends AppCompatActivity {
         saveAudioReadingState();
     }
 
-    // ==========================================
-    // CÁC HÀM CÒN LẠI GIỮ NGUYÊN HOÀN TOÀN
-    // ==========================================
-
     private void showAudioSettingsBottomSheet() {
         String[] options = {"Tốc độ đọc: " + speechRateLabels[currentSpeechRateIndex], "Hẹn giờ"};
         new AlertDialog.Builder(this)
                 .setTitle("Cài đặt audio")
                 .setItems(options, (dialog, which) -> {
-                    if (which == 0) showAudioSpeedDialog();
-                    else if (which == 1) showSleepTimerBottomSheet();
-                }).show();
+                    if (which == 0) {
+                        showAudioSpeedDialog();
+                    } else if (which == 1) {
+                        showSleepTimerBottomSheet();
+                    }
+                })
+                .show();
     }
 
     private void restoreSavedAudioStateIfAny() {
@@ -557,6 +575,7 @@ public class ReaderActivity extends AppCompatActivity {
         boolean savedWasPlaying = prefs.getBoolean(KEY_IS_AUDIO_PLAYING, false);
 
         if (savedBookId == null || savedChapterId == null) return;
+
         if (savedBookId.equals(bookId)) {
             chapterId = savedChapterId;
             pendingResumeAudioIndex = Math.max(savedAudioIndex, 0);
@@ -580,10 +599,13 @@ public class ReaderActivity extends AppCompatActivity {
 
     private void askResumeAudioIfNeeded() {
         if (!shouldAskResumeAudio || audioParts.isEmpty()) return;
+
         shouldAskResumeAudio = false;
 
         if (pendingResumeAudioIndex < 0) pendingResumeAudioIndex = 0;
-        if (pendingResumeAudioIndex >= audioParts.size()) pendingResumeAudioIndex = audioParts.size() - 1;
+        if (pendingResumeAudioIndex >= audioParts.size()) {
+            pendingResumeAudioIndex = audioParts.size() - 1;
+        }
 
         final int resumeIndex = pendingResumeAudioIndex;
 
@@ -596,7 +618,9 @@ public class ReaderActivity extends AppCompatActivity {
                     updateAudioCurrentPartText();
                     highlightCurrentAudioPart();
                     saveAudioReadingState();
-                    if (shouldAutoPlayAfterChapterLoad) startAudio();
+                    if (shouldAutoPlayAfterChapterLoad) {
+                        startAudio();
+                    }
                 })
                 .setNegativeButton("Đọc từ đầu", (dialog, which) -> {
                     currentAudioIndex = 0;
@@ -637,12 +661,16 @@ public class ReaderActivity extends AppCompatActivity {
     private void prepareAudioContent(String content) {
         audioParts.clear();
         currentAudioIndex = 0;
-        stopAudioUiOnly();
+
+        if (textToSpeech != null) {
+            textToSpeech.stop();
+        }
+        isAudioPlaying = false;
 
         if (content == null) content = "";
-        content = content.trim();
+        fullChapterContent = content.trim();
 
-        if (content.isEmpty()) {
+        if (fullChapterContent.isEmpty()) {
             audioSeekBar.setMax(0);
             audioSeekBar.setProgress(0);
             updatePlayPauseIcon();
@@ -651,7 +679,7 @@ public class ReaderActivity extends AppCompatActivity {
             return;
         }
 
-        audioParts.addAll(splitIntoParagraphChunks(content, 300));
+        audioParts.addAll(splitIntoParagraphChunksWithPosition(fullChapterContent, 300));
         audioSeekBar.setMax(Math.max(audioParts.size() - 1, 0));
 
         if (pendingResumeAudioIndex >= 0 && pendingResumeAudioIndex < audioParts.size()) {
@@ -671,12 +699,17 @@ public class ReaderActivity extends AppCompatActivity {
             Toast.makeText(this, "Text to Speech chưa sẵn sàng", Toast.LENGTH_SHORT).show();
             return;
         }
+
         if (audioParts.isEmpty()) {
             Toast.makeText(this, "Chưa có nội dung để đọc", Toast.LENGTH_SHORT).show();
             return;
         }
-        if (isAudioPlaying) pauseAudio();
-        else startAudio();
+
+        if (isAudioPlaying) {
+            pauseAudio();
+        } else {
+            startAudio();
+        }
     }
 
     private void startAudio() {
@@ -693,16 +726,19 @@ public class ReaderActivity extends AppCompatActivity {
         updatePlayPauseIcon();
         updateAudioCurrentPartText();
         saveAudioReadingState();
-        if (textToSpeech != null) textToSpeech.stop();
+        if (textToSpeech != null) {
+            textToSpeech.stop();
+        }
     }
 
     private void stopAudioUiOnly() {
         isAudioPlaying = false;
         updatePlayPauseIcon();
         updateAudioCurrentPartText();
-        highlightCurrentAudioPart();
         saveAudioReadingState();
-        if (textToSpeech != null) textToSpeech.stop();
+        if (textToSpeech != null) {
+            textToSpeech.stop();
+        }
     }
 
     private void stopAudioFully() {
@@ -714,11 +750,14 @@ public class ReaderActivity extends AppCompatActivity {
         updateAudioCurrentPartText();
         highlightCurrentAudioPart();
         saveAudioReadingState();
-        if (textToSpeech != null) textToSpeech.stop();
+        if (textToSpeech != null) {
+            textToSpeech.stop();
+        }
     }
 
     private void replayAudioFromStart() {
         if (audioParts.isEmpty()) return;
+
         currentAudioIndex = 0;
         pendingResumeAudioIndex = 0;
         audioSeekBar.setProgress(0);
@@ -730,6 +769,7 @@ public class ReaderActivity extends AppCompatActivity {
 
     private void goToPreviousAudioPart() {
         if (audioParts.isEmpty()) return;
+
         if (currentAudioIndex > 0) {
             currentAudioIndex--;
             pendingResumeAudioIndex = currentAudioIndex;
@@ -737,7 +777,9 @@ public class ReaderActivity extends AppCompatActivity {
             updateAudioCurrentPartText();
             highlightCurrentAudioPart();
             saveAudioReadingState();
-            if (isAudioPlaying) speakCurrentPart();
+            if (isAudioPlaying) {
+                speakCurrentPart();
+            }
         } else {
             Toast.makeText(this, "Đây là đoạn đầu", Toast.LENGTH_SHORT).show();
         }
@@ -745,6 +787,7 @@ public class ReaderActivity extends AppCompatActivity {
 
     private void goToNextAudioPart() {
         if (audioParts.isEmpty()) return;
+
         if (currentAudioIndex < audioParts.size() - 1) {
             currentAudioIndex++;
             pendingResumeAudioIndex = currentAudioIndex;
@@ -752,19 +795,23 @@ public class ReaderActivity extends AppCompatActivity {
             updateAudioCurrentPartText();
             highlightCurrentAudioPart();
             saveAudioReadingState();
-            if (isAudioPlaying) speakCurrentPart();
+            if (isAudioPlaying) {
+                speakCurrentPart();
+            }
         } else {
             Toast.makeText(this, "Đây là đoạn cuối", Toast.LENGTH_SHORT).show();
         }
     }
 
     private void speakCurrentPart() {
-        if (!isTtsReady || audioParts.isEmpty() || currentAudioIndex < 0 || currentAudioIndex >= audioParts.size()) return;
+        if (!isTtsReady || audioParts.isEmpty() || currentAudioIndex < 0 || currentAudioIndex >= audioParts.size()) {
+            return;
+        }
 
         updateAudioCurrentPartText();
         highlightCurrentAudioPart();
 
-        String text = audioParts.get(currentAudioIndex);
+        String text = audioParts.get(currentAudioIndex).text;
         String utteranceId = "chapter_part_" + currentAudioIndex;
         textToSpeech.speak(text, TextToSpeech.QUEUE_FLUSH, null, utteranceId);
     }
@@ -786,6 +833,7 @@ public class ReaderActivity extends AppCompatActivity {
 
         for (int i = 0; i < sleepTimerLabels.length; i++) {
             final int index = i;
+
             LinearLayout row = new LinearLayout(this);
             row.setOrientation(LinearLayout.HORIZONTAL);
             row.setGravity(Gravity.CENTER_VERTICAL);
@@ -810,6 +858,7 @@ public class ReaderActivity extends AppCompatActivity {
                 applySleepTimerSelection(index);
                 dialog.dismiss();
             });
+
             container.addView(row);
         }
 
@@ -823,14 +872,30 @@ public class ReaderActivity extends AppCompatActivity {
         stopWhenChapterEnds = false;
 
         switch (index) {
-            case 0: Toast.makeText(this, "Đã tắt hẹn giờ", Toast.LENGTH_SHORT).show(); break;
-            case 1: startSleepTimerMinutes(5); break;
-            case 2: startSleepTimerMinutes(10); break;
-            case 3: startSleepTimerMinutes(15); break;
-            case 4: startSleepTimerMinutes(20); break;
-            case 5: startSleepTimerMinutes(30); break;
-            case 6: startSleepTimerMinutes(45); break;
-            case 7: startSleepTimerMinutes(60); break;
+            case 0:
+                Toast.makeText(this, "Đã tắt hẹn giờ", Toast.LENGTH_SHORT).show();
+                break;
+            case 1:
+                startSleepTimerMinutes(5);
+                break;
+            case 2:
+                startSleepTimerMinutes(10);
+                break;
+            case 3:
+                startSleepTimerMinutes(15);
+                break;
+            case 4:
+                startSleepTimerMinutes(20);
+                break;
+            case 5:
+                startSleepTimerMinutes(30);
+                break;
+            case 6:
+                startSleepTimerMinutes(45);
+                break;
+            case 7:
+                startSleepTimerMinutes(60);
+                break;
             case 8:
                 stopWhenChapterEnds = true;
                 Toast.makeText(this, "Sẽ dừng khi hết chương này", Toast.LENGTH_SHORT).show();
@@ -841,6 +906,7 @@ public class ReaderActivity extends AppCompatActivity {
     private void startSleepTimerMinutes(int minutes) {
         if (minutes <= 0) return;
         if (minutes > 60) minutes = 60;
+
         cancelSleepTimer(true);
 
         sleepTimerRunnable = () -> {
@@ -859,7 +925,9 @@ public class ReaderActivity extends AppCompatActivity {
             sleepTimerRunnable = null;
         }
         stopWhenChapterEnds = false;
-        if (!silent) Toast.makeText(this, "Đã tắt hẹn giờ", Toast.LENGTH_SHORT).show();
+        if (!silent) {
+            Toast.makeText(this, "Đã tắt hẹn giờ", Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void showAudioSpeedDialog() {
@@ -867,48 +935,71 @@ public class ReaderActivity extends AppCompatActivity {
         builder.setTitle("Chọn tốc độ đọc");
         builder.setSingleChoiceItems(speechRateLabels, currentSpeechRateIndex, (dialog, which) -> {
             currentSpeechRateIndex = which;
-            if (textToSpeech != null) textToSpeech.setSpeechRate(speechRates[currentSpeechRateIndex]);
+            if (textToSpeech != null) {
+                textToSpeech.setSpeechRate(speechRates[currentSpeechRateIndex]);
+            }
             updateAudioSpeedText();
             dialog.dismiss();
-            if (isAudioPlaying) speakCurrentPart();
+            if (isAudioPlaying) {
+                speakCurrentPart();
+            }
         });
         builder.setNegativeButton("Hủy", (dialog, which) -> dialog.dismiss());
         builder.show();
     }
 
     private void updateAudioSpeedText() {
-        if (txtAudioSpeed != null) txtAudioSpeed.setText("Tốc độ: " + speechRateLabels[currentSpeechRateIndex]);
+        if (txtAudioSpeed != null) {
+            txtAudioSpeed.setText("Tốc độ: " + speechRateLabels[currentSpeechRateIndex]);
+        }
     }
 
     private void updatePlayPauseIcon() {
         if (imgPlayPauseAudio == null) return;
-        imgPlayPauseAudio.setImageResource(isAudioPlaying ? android.R.drawable.ic_media_pause : android.R.drawable.ic_media_play);
+        imgPlayPauseAudio.setImageResource(
+                isAudioPlaying ? android.R.drawable.ic_media_pause : android.R.drawable.ic_media_play
+        );
     }
 
     private void updateAudioCurrentPartText() {
         if (txtAudioCurrentPart == null) return;
+
         if (audioParts.isEmpty()) {
             txtAudioCurrentPart.setText("Chưa có nội dung audio");
             return;
         }
-        txtAudioCurrentPart.setText((isAudioPlaying ? "Đang đọc: đoạn " : "Đang chọn: đoạn ") + (currentAudioIndex + 1) + "/" + audioParts.size());
+
+        txtAudioCurrentPart.setText(
+                (isAudioPlaying ? "Đang đọc: đoạn " : "Đang chọn: đoạn ")
+                        + (currentAudioIndex + 1) + "/" + audioParts.size()
+        );
     }
 
     private void highlightCurrentAudioPart() {
-        if (fullChapterContent == null || fullChapterContent.isEmpty() || !isHighlightEnabled || audioParts.isEmpty() || currentAudioIndex < 0 || currentAudioIndex >= audioParts.size()) {
-            tvChapterContent.setText(fullChapterContent == null ? "" : fullChapterContent);
+        if (fullChapterContent == null || fullChapterContent.isEmpty()) {
+            tvChapterContent.setText("");
             return;
         }
 
-        String currentPart = audioParts.get(currentAudioIndex);
-        int start = fullChapterContent.indexOf(currentPart);
-
-        if (start < 0) {
+        if (!isHighlightEnabled) {
             tvChapterContent.setText(fullChapterContent);
             return;
         }
 
-        int end = start + currentPart.length();
+        if (audioParts.isEmpty() || currentAudioIndex < 0 || currentAudioIndex >= audioParts.size()) {
+            tvChapterContent.setText(fullChapterContent);
+            return;
+        }
+
+        AudioPart currentPart = audioParts.get(currentAudioIndex);
+        int start = currentPart.start;
+        int end = currentPart.end;
+
+        if (start < 0 || end <= start || end > fullChapterContent.length()) {
+            tvChapterContent.setText(fullChapterContent);
+            return;
+        }
+
         SpannableString spannable = new SpannableString(fullChapterContent);
         spannable.setSpan(new ForegroundColorSpan(0xFF1976D2), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         spannable.setSpan(new StyleSpan(Typeface.BOLD), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
@@ -926,15 +1017,26 @@ public class ReaderActivity extends AppCompatActivity {
 
     private void saveReadingHistory(String lastReadChapterId) {
         if (FirebaseAuth.getInstance().getCurrentUser() == null) return;
+
         String uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
         HistoryLibraryPayload payload = new HistoryLibraryPayload(bookId, "history", lastReadChapterId);
 
-        db.collection("Users").document(uid).collection("Library")
-                .whereEqualTo("bookId", bookId).whereEqualTo("type", "history")
-                .limit(1).get()
+        db.collection("Users")
+                .document(uid)
+                .collection("Library")
+                .whereEqualTo("bookId", bookId)
+                .whereEqualTo("type", "history")
+                .limit(1)
+                .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
-                    if (!queryDocumentSnapshots.isEmpty()) queryDocumentSnapshots.getDocuments().get(0).getReference().set(payload);
-                    else db.collection("Users").document(uid).collection("Library").add(payload);
+                    if (!queryDocumentSnapshots.isEmpty()) {
+                        queryDocumentSnapshots.getDocuments().get(0).getReference().set(payload);
+                    } else {
+                        db.collection("Users")
+                                .document(uid)
+                                .collection("Library")
+                                .add(payload);
+                    }
                 });
     }
 
@@ -948,71 +1050,145 @@ public class ReaderActivity extends AppCompatActivity {
     protected void onDestroy() {
         saveAudioReadingState();
         cancelSleepTimer(true);
+
         if (textToSpeech != null) {
             textToSpeech.stop();
             textToSpeech.shutdown();
         }
+
         if (executorService != null && !executorService.isShutdown()) {
             executorService.shutdown();
         }
+
         super.onDestroy();
     }
 
-    private List<String> splitIntoParagraphChunks(String text, int maxLength) {
-        List<String> result = new ArrayList<>();
+    private List<AudioPart> splitIntoParagraphChunksWithPosition(String text, int maxLength) {
+        List<AudioPart> result = new ArrayList<>();
+
+        int cursor = 0;
         String[] paragraphs = text.split("\\n\\n+");
+
         for (String paragraph : paragraphs) {
             String cleaned = paragraph.trim();
             if (cleaned.isEmpty()) continue;
-            if (cleaned.length() <= maxLength) result.add(cleaned);
-            else result.addAll(splitLongTextBySentence(cleaned, maxLength));
+
+            int foundAt = text.indexOf(cleaned, cursor);
+            if (foundAt < 0) {
+                foundAt = text.indexOf(cleaned);
+                if (foundAt < 0) continue;
+            }
+
+            if (cleaned.length() <= maxLength) {
+                result.add(new AudioPart(cleaned, foundAt, foundAt + cleaned.length()));
+            } else {
+                result.addAll(splitLongTextBySentenceWithPosition(cleaned, foundAt, maxLength));
+            }
+
+            cursor = foundAt + cleaned.length();
         }
+
         return result;
     }
 
-    private List<String> splitLongTextBySentence(String text, int maxLength) {
-        List<String> result = new ArrayList<>();
+    private List<AudioPart> splitLongTextBySentenceWithPosition(String text, int baseStart, int maxLength) {
+        List<AudioPart> result = new ArrayList<>();
         String[] sentences = text.split("(?<=[.!?…])\\s+");
         StringBuilder currentChunk = new StringBuilder();
+        int currentChunkStart = -1;
+        int localCursor = 0;
 
         for (String sentence : sentences) {
             String trimmed = sentence.trim();
             if (trimmed.isEmpty()) continue;
 
+            int relativeStart = text.indexOf(trimmed, localCursor);
+            if (relativeStart < 0) {
+                relativeStart = text.indexOf(trimmed);
+                if (relativeStart < 0) continue;
+            }
+
             if (trimmed.length() > maxLength) {
                 if (currentChunk.length() > 0) {
-                    result.add(currentChunk.toString().trim());
+                    String chunkText = currentChunk.toString().trim();
+                    result.add(new AudioPart(
+                            chunkText,
+                            baseStart + currentChunkStart,
+                            baseStart + currentChunkStart + chunkText.length()
+                    ));
                     currentChunk.setLength(0);
+                    currentChunkStart = -1;
                 }
-                result.addAll(splitVeryLongSentence(trimmed, maxLength));
+
+                result.addAll(splitVeryLongSentenceWithPosition(trimmed, baseStart + relativeStart, maxLength));
+                localCursor = relativeStart + trimmed.length();
                 continue;
             }
 
-            if (currentChunk.length() == 0) currentChunk.append(trimmed);
-            else if (currentChunk.length() + 1 + trimmed.length() <= maxLength) currentChunk.append(" ").append(trimmed);
-            else {
-                result.add(currentChunk.toString().trim());
+            if (currentChunk.length() == 0) {
+                currentChunk.append(trimmed);
+                currentChunkStart = relativeStart;
+            } else if (currentChunk.length() + 1 + trimmed.length() <= maxLength) {
+                currentChunk.append(" ").append(trimmed);
+            } else {
+                String chunkText = currentChunk.toString().trim();
+                result.add(new AudioPart(
+                        chunkText,
+                        baseStart + currentChunkStart,
+                        baseStart + currentChunkStart + chunkText.length()
+                ));
+
                 currentChunk.setLength(0);
                 currentChunk.append(trimmed);
+                currentChunkStart = relativeStart;
             }
+
+            localCursor = relativeStart + trimmed.length();
         }
-        if (currentChunk.length() > 0) result.add(currentChunk.toString().trim());
+
+        if (currentChunk.length() > 0) {
+            String chunkText = currentChunk.toString().trim();
+            result.add(new AudioPart(
+                    chunkText,
+                    baseStart + currentChunkStart,
+                    baseStart + currentChunkStart + chunkText.length()
+            ));
+        }
+
         return result;
     }
 
-    private List<String> splitVeryLongSentence(String text, int maxLength) {
-        List<String> result = new ArrayList<>();
+    private List<AudioPart> splitVeryLongSentenceWithPosition(String text, int baseStart, int maxLength) {
+        List<AudioPart> result = new ArrayList<>();
         int start = 0;
+
         while (start < text.length()) {
             int end = Math.min(start + maxLength, text.length());
+
             if (end < text.length()) {
                 int lastSpace = text.lastIndexOf(' ', end);
-                if (lastSpace > start) end = lastSpace;
+                if (lastSpace > start) {
+                    end = lastSpace;
+                }
             }
+
             String chunk = text.substring(start, end).trim();
-            if (!chunk.isEmpty()) result.add(chunk);
+            if (!chunk.isEmpty()) {
+                int realStart = text.indexOf(chunk, start);
+                if (realStart < 0) {
+                    realStart = start;
+                }
+
+                result.add(new AudioPart(
+                        chunk,
+                        baseStart + realStart,
+                        baseStart + realStart + chunk.length()
+                ));
+            }
+
             start = end;
         }
+
         return result;
     }
 
@@ -1022,7 +1198,8 @@ public class ReaderActivity extends AppCompatActivity {
         public String lastReadChapterId;
         public Timestamp timestamp;
 
-        public HistoryLibraryPayload() {}
+        public HistoryLibraryPayload() {
+        }
 
         public HistoryLibraryPayload(String bookId, String type, String lastReadChapterId) {
             this.bookId = bookId;
