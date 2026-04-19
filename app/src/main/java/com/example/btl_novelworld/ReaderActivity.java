@@ -927,14 +927,32 @@ public class ReaderActivity extends AppCompatActivity {
     private void saveReadingHistory(String lastReadChapterId) {
         if (FirebaseAuth.getInstance().getCurrentUser() == null) return;
         String uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
-        HistoryLibraryPayload payload = new HistoryLibraryPayload(bookId, "history", lastReadChapterId);
 
+        // Tìm TẤT CẢ bản ghi của cuốn truyện này trong Tủ sách (Cả Lịch sử và Yêu thích)
         db.collection("Users").document(uid).collection("Library")
-                .whereEqualTo("bookId", bookId).whereEqualTo("type", "history")
-                .limit(1).get()
+                .whereEqualTo("bookId", bookId)
+                .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
-                    if (!queryDocumentSnapshots.isEmpty()) queryDocumentSnapshots.getDocuments().get(0).getReference().set(payload);
-                    else db.collection("Users").document(uid).collection("Library").add(payload);
+                    boolean hasHistory = false;
+
+                    for (DocumentSnapshot doc : queryDocumentSnapshots.getDocuments()) {
+                        String type = doc.getString("type");
+                        if ("history".equals(type)) {
+                            hasHistory = true;
+                        }
+
+                        // Cập nhật chương vừa đọc cho tất cả các tab
+                        doc.getReference().update(
+                                "lastReadChapterId", lastReadChapterId,
+                                "timestamp", Timestamp.now()
+                        );
+                    }
+
+                    // Nếu user đọc truyện này lần đầu (chưa có trong lịch sử) thì tạo mới
+                    if (!hasHistory) {
+                        HistoryLibraryPayload payload = new HistoryLibraryPayload(bookId, "history", lastReadChapterId);
+                        db.collection("Users").document(uid).collection("Library").add(payload);
+                    }
                 });
     }
 
